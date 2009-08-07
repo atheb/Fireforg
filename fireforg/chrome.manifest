@@ -1,0 +1,5 @@
+content	fireforg	content/
+locale	fireforg	en-US	locale/en-US/
+skin	fireforg	classic/1.0	skin/
+overlay	chrome://browser/content/browser.xul	chrome://fireforg/content/firefoxOverlay.xul
+style	chrome://global/content/customizeToolbar.xul	chrome://fireforg/skin/overlay.css

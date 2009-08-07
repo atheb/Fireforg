@@ -1,0 +1,14 @@
+<!ENTITY prefwindow.title "fireforg preferences">
+<!ENTITY pane1.title "fireforg preferences">
+<!ENTITY checkboolpref.label "A Boolean Preference">
+<!ENTITY checkboolpref.accesskey "B">
+<!ENTITY intpref.label "An Integer Preference">
+<!ENTITY intpref.accesskey "I">
+
+<!ENTITY prefLookupLinksOnLoad.label "Lookup links on page load">
+<!ENTITY prefLookupLinksOnLoad.accesskey "L">
+<!ENTITY prefAnnotationLinkStyle.label "CSS style string for links with annotations:">
+<!ENTITY prefAnnotationLinkStyle.accesskey "S">
+<!ENTITY prefAnnotationLinkTooltip.label "Overwrite tooltip for links with annotations">
+<!ENTITY prefAnnotationLinkTooltip.accesskey "T">
+<!ENTITY prefRegistryFile.label "Registry file:">

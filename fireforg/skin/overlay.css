@@ -1,0 +1,47 @@
+/* This is just an example.  You shouldn't do this. */
+#fireforg-hello
+{
+  color: red ! important;
+}
+#fireforg-toolbar-button
+{
+  list-style-image: url("chrome://fireforg/skin/toolbar-button.png");
+  -moz-image-region: rect(0px 24px 24px 0px);
+}
+#fireforg-toolbar-button:hover
+{
+  -moz-image-region: rect(24px 24px 48px  0px);
+}
+[iconsize="small"] #fireforg-toolbar-button
+{
+  -moz-image-region: rect( 0px 40px 16px 24px);
+}
+[iconsize="small"] #fireforg-toolbar-button:hover
+{
+  -moz-image-region: rect(24px 40px 40px 24px);
+}
+.fireforg_img_normal
+{
+  list-style-image: url("chrome://fireforg/skin/org-mode-unicorn_16.ico");
+}
+.fireforg_img_waiting
+{
+  list-style-image: url("chrome://fireforg/skin/org-mode-unicorn_16.ico");
+}
+.fireforg_img_error
+{
+  list-style-image: url("chrome://fireforg/skin/org-mode-unicorn_16.ico");
+}
+.zeroDiv
+{
+  width:0px;height:0px;
+}
+.innerDiv
+{
+  position:absolute;left:-10px;top:-10px;
+}
+.orgNoteLink
+{
+  /*text-decoration:overline;*/
+  border-style:solid;border-width:1px;background-color:gray;
+}

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="chrome://fireforg/skin/overlay.css" type="text/css"?>
+<!DOCTYPE overlay SYSTEM "chrome://fireforg/locale/fireforg.dtd">
+<overlay id="fireforg-overlay"
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <script type="text/javascript" src="jquery-1.3.2.min.js" /> 
+  <script src="overlay.js"/>
+
+  <stringbundleset id="stringbundleset">
+    <stringbundle id="fireforg-strings" src="chrome://fireforg/locale/fireforg.properties"/>
+  </stringbundleset>
+
+<!--  <menupopup id="menu_ToolsPopup">
+    <menuitem id="fireforg-hello" label="&fireforg.label;" 
+              oncommand="fireforg.onMenuItemCommand(event);"/>
+  </menupopup> -->
+  <!--<toolbarpalette id="BrowserToolbarPalette">
+  <toolbarbutton id="fireforg-toolbar-button"
+    label="&fireforgToolbar.label;"
+    tooltiptext="&fireforgToolbar.tooltip;"
+    oncommand="fireforg.onToolbarButtonCommand()"
+    class="toolbarbutton-1 chromeclass-toolbar-additional"/>
+  </toolbarpalette>-->
+
+  <statusbar id="status-bar">
+      <statusbarpanel id="fireforg_spi" class="fireforg_img_normal">
+      <image id="fireforg_spi_image" src="chrome://fireforg/skin/org-mode-unicorn_16.png"/>
+      <label id="fireforg_spi_label" value=""/>
+      <label id="fireforg_spi_label_tags" value=""/>
+      </statusbarpanel>
+   </statusbar> 
+
+
+  <popupset id="mainPopupSet">
+    <menupopup id="fireforg_popup_dynamic">
+    </menupopup>
+    <menupopup id="fireforg_popup_menu">
+      <menuitem label="store-link" onclick="fireforg.orgProtocolStoreLink()"/>
+      <menuitem label="remember" onclick="fireforg.orgProtocolRemember()"/>
+    </menupopup>
+  </popupset>
+
+
+</overlay>
+

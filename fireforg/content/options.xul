@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<!DOCTYPE prefwindow SYSTEM "chrome://fireforg/locale/prefwindow.dtd">
+<prefwindow id="fireforgPreferences" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" title="&prefwindow.title;">
+  <prefpane id="pane1" label="&pane1.title;">
+    <preferences>
+      <preference id="registryFile" name="extensions.fireforg.registryFile" type="string"/>
+      <preference id="lookupLinksOnLoad" name="extensions.fireforg.lookupLinksOnLoad" type="bool"/>
+      <preference id="annotationLinkStyle" name="extensions.fireforg.annotationLinkStyle" type="string"/>
+      <preference id="annotationLinkTooltip" name="extensions.fireforg.annotationLinkTooltip" type="bool"/>
+    </preferences>
+    <label>&prefRegistryFile.label;</label><textbox preference="registryFile"/>
+    <checkbox preference="lookupLinksOnLoad" label="&prefLookupLinksOnLoad.label;"/>
+    <label>&prefAnnotationLinkStyle.label;</label><textbox preference="annotationLinkStyle"/>
+    <checkbox preference="annotationLinkTooltip" label="&prefAnnotationLinkTooltip.label;"/>
+  </prefpane>
+</prefwindow>
