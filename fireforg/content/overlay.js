@@ -47,7 +47,12 @@ var fireforg = {
                 var objectJQ = fireforg.jq(this);
                 var url = objectJQ.attr("href");
 
-                var registryEntry = fireforg.registryDOM.evaluate("//link[@url=\"" + url +"\"]", fireforg.registryDOM, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                try {
+		    // the xpath query may be invalid for certain url's
+                  var registryEntry = fireforg.registryDOM.evaluate("//link[@url=\"" + url +"\"]", fireforg.registryDOM, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                } catch (e) {
+		    registryEntry = null;
+		}
 
                 if( registryEntry ) {
                     // add class orgNoteLink in order to be able to select the modified elements later (no css info connected with this class)
