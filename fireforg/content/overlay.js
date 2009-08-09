@@ -215,16 +215,6 @@ var fireforg = {
 	this.initialized = true;
 	this.strings = document.getElementById("fireforg-strings");
     },
-    onMenuItemCommand: function(e) {
-	var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-	.getService(Components.interfaces.nsIPromptService);
-	promptService.alert(window, this.strings.getString("helloMessageTitle"),
-			    this.strings.getString("helloMessage"));
-    },
-    onStatusbarButtonCommand: function(e) {
-	// just reuse the function above.  you can change this, obviously!
-	fireforg.onMenuItemCommand(e);
-    },
     onStatusbarIconClicked: function (ev) {
 	if( ev.button == 0 )
 	    fireforg.showLinkListPopup();
@@ -251,7 +241,7 @@ var fireforg = {
                              var tags = headingJQ.attr("tags");
 
                              var tmpItem = document.createElement("menuitem");
-                             tmpItem.setAttribute("label", headingText + "  " + tags + " : " + file);
+                             tmpItem.setAttribute("label", headingText + "  " + tags );
                              tmpItem.setAttribute("onclick","fireforg.orgProtocolShowAnnotation(\"" + encodeURIComponent(file) + "\",\"" + encodeURIComponent(headingText) + "\",true)");
                              popupMenu.appendChild( tmpItem );
 			 });

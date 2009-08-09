@@ -10,20 +10,8 @@
     <stringbundle id="fireforg-strings" src="chrome://fireforg/locale/fireforg.properties"/>
   </stringbundleset>
 
-<!--  <menupopup id="menu_ToolsPopup">
-    <menuitem id="fireforg-hello" label="&fireforg.label;" 
-              oncommand="fireforg.onMenuItemCommand(event);"/>
-  </menupopup> -->
-  <!--<toolbarpalette id="BrowserToolbarPalette">
-  <toolbarbutton id="fireforg-toolbar-button"
-    label="&fireforgToolbar.label;"
-    tooltiptext="&fireforgToolbar.tooltip;"
-    oncommand="fireforg.onToolbarButtonCommand()"
-    class="toolbarbutton-1 chromeclass-toolbar-additional"/>
-  </toolbarpalette>-->
-
   <statusbar id="status-bar">
-      <statusbarpanel id="fireforg_spi" class="fireforg_img_normal">
+      <statusbarpanel id="fireforg_spi" class="fireforg_img_normal" position="6">
       <image id="fireforg_spi_image" src="chrome://fireforg/skin/org-mode-unicorn_16.png"/>
       <label id="fireforg_spi_label" value=""/>
       <label id="fireforg_spi_label_tags" value=""/>
