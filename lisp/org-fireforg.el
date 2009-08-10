@@ -5,7 +5,7 @@
 ;; Copyright 2009 Andreas Burtzlaff
 ;;
 ;; Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-;; Version: 0.1alpha2
+;; Version: 0.1alpha3
 ;; Keywords: org-mode filesystem tree
 ;;
 ;; This file is not part of GNU Emacs.
@@ -37,7 +37,7 @@
 
 (require 'org-protocol)
 
-(require 'org-registry)
+;;(require 'org-registry)
 
 (add-to-list 'org-protocol-protocol-alist
              '("Fireforg show annotation: fireforg-show-annotation://<file (encoded)>/<header (encoded)>"
@@ -125,7 +125,31 @@ Use with caution.  This could slow down things a bit."
 (defun org-fireforg-registry-get-entries (file &optional registry)
   "Merge all Org links in FILE into the registry."
   (let (bufstr
-        (result registry))
+        (result registry)
+        (add-entry-for (function (lambda (link desc)
+				   (let* ((point (match-beginning 0))
+					  (onHeading (org-on-heading-p))
+					  headingPoint
+					  (headingAndTags (save-excursion (if (org-before-first-heading-p) "" (org-back-to-heading t) (setq headingPoint (point)) (let ((ohc (org-heading-components))) (list (nth 4 ohc) (org-get-tags-at))))))
+					  (heading (car headingAndTags))
+					  (tags (nth 1 headingAndTags))
+					  (contentEntry (list point desc onHeading))
+					  (headingEntry (list heading headingPoint onHeading tags (list contentEntry)))
+					  (fileEntry (list (expand-file-name file) (list headingEntry)))
+					  (linkEntry (list link (list fileEntry)))
+					  (existingLinkEntry (assoc link result))
+					  (existingFileEntry (assoc (expand-file-name file) (nth 1 existingLinkEntry)))
+					  (existingHeadingEntry (assoc heading (nth 1 existingFileEntry))))
+
+				     (cond (existingLinkEntry
+					    (cond (existingFileEntry
+						   (cond (existingHeadingEntry (setf (nth 4 existingHeadingEntry) (cons contentEntry (nth 4 existingHeadingEntry))))
+							 (t (setf (nth 1 existingFileEntry) (cons headingEntry (nth 1 existingFileEntry))))))
+						  (t (setf (nth 1 existingLinkEntry) (cons fileEntry (nth 1 existingLinkEntry))))))
+					   (t (add-to-list 'result linkEntry))))))
+
+		       ))
+
     (with-temp-buffer
       (insert-file-contents file)
       ;; Turn on org-mode in order to use org-heading-components and org-get-tags-at
@@ -133,35 +157,14 @@ Use with caution.  This could slow down things a bit."
       (org-mode)
       (goto-char (point-min))
       (while (re-search-forward org-bracket-link-regexp nil t)
-	(let* ((point (match-beginning 0))
-	       (link (match-string-no-properties 1))
-	       (desc (or (match-string-no-properties 3) "No description"))
-               (onHeading (org-on-heading-p))
-               headingPoint
-	       (headingAndTags (save-excursion (if (org-before-first-heading-p) "" (org-back-to-heading t) (setq headingPoint (point)) (let ((ohc (org-heading-components))) (list (nth 4 ohc) (org-get-tags-at))))))
-               (heading (car headingAndTags))
-               (tags (nth 1 headingAndTags))
-               (contentEntry (list point desc onHeading))
-               (headingEntry (list heading headingPoint onHeading tags (list contentEntry)))
-               (fileEntry (list (expand-file-name file) (list headingEntry)))
-               (linkEntry (list link (list fileEntry)))
-               (existingLinkEntry (assoc link result))
-               (existingFileEntry (assoc (expand-file-name file) (nth 1 existingLinkEntry)))
-               (existingHeadingEntry (assoc heading (nth 1 existingFileEntry))))
-
-	  (cond (existingLinkEntry
-                 (cond (existingFileEntry
-                          (cond (existingHeadingEntry (setf (nth 4 existingHeadingEntry) (cons contentEntry (nth 4 existingHeadingEntry))))
-		              (t (setf (nth 1 existingFileEntry) (cons headingEntry (nth 1 existingFileEntry))))))
-                       (t (setf (nth 1 existingLinkEntry) (cons fileEntry (nth 1 existingLinkEntry))))))
-		 (t (add-to-list 'result linkEntry))))))
-    ;; TODO add search for angle links
-    ;;      (goto-char (point-min))
-    ;;      (while (re-search-forward org-bracket-link-regexp nil t)
-    ;;	(let* ((point (match-beginning 0))
-    ;;	       (link (match-string-no-properties 1))
-    ;;	       (desc (or (match-string-no-properties 3) "No description")))
-    result))
+        (funcall add-entry-for (match-string-no-properties 1) (or (match-string-no-properties 3) "No description")))
+      (goto-char (point-min))
+      (while (re-search-forward org-angle-link-re nil t)
+        (funcall add-entry-for (concat (match-string-no-properties 1) ":" (match-string-no-properties 2)) "" ))
+      (goto-char (point-min))
+      (while (re-search-forward org-plain-link-re nil t)
+        (funcall add-entry-for (match-string-no-properties 0) "" ))
+      result)))
 
 ;;;###autoload
 (defun org-fireforg-registry-update ()
@@ -206,6 +209,7 @@ Use with caution.  This could slow down things a bit."
 	         "(setq org-fireforg-registry-alist\n"
                  (org-fireforg-registry-to-string-rec org-fireforg-registry-alist) ")"))
 	 
+      (set-buffer-file-coding-system 'utf-8)
       (save-buffer)
       (kill-buffer (current-buffer))))
   (message "Org registry created"))
@@ -251,6 +255,7 @@ Use with caution.  This could slow down things a bit."
 	     "</orgregistry>"))
 
     (when (file-writable-p org-fireforg-registry-file-xml)
+      (set-buffer-file-coding-system 'utf-8)
       (write-region (point-min)
 		    (point-max)
 		    org-fireforg-registry-file-xml))))
