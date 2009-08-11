@@ -47,12 +47,7 @@ var fireforg = {
                 var objectJQ = fireforg.jq(this);
                 var url = objectJQ.attr("href");
 
-                try {
-		    // the xpath query may be invalid for certain url's
-                  var registryEntry = fireforg.registryDOM.evaluate("//link[@url=\"" + url +"\"]", fireforg.registryDOM, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-                } catch (e) {
-		    registryEntry = null;
-		}
+                var registryEntry = fireforg.getRegistryEntryForLink( url );
 
                 if( registryEntry ) {
                     // add class orgNoteLink in order to be able to select the modified elements later (no css info connected with this class)
@@ -190,6 +185,14 @@ var fireforg = {
 	}
 
     },
+    getRegistryEntryForLink: function (url) {
+	try {
+	    // the xpath query may be invalid for certain url's
+	    return fireforg.registryDOM.evaluate("//link[@url=\"" + url +"\"]", fireforg.registryDOM, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+	} catch (e) {
+	    return null;
+	}
+    },
     onLoad: function() {
 	// init variables
         fireforg.timeout = window.setTimeout("",10);
@@ -233,24 +236,8 @@ var fireforg = {
         if( fireforg.currentLinkRegistryEntry ) {
            var popupMenu = document.getElementById('fireforg_popup_dynamic');
                 
-           // remove all children
-           while(popupMenu.hasChildNodes()){
-	     popupMenu.removeChild(popupMenu.lastChild);}
-
-	   fireforg.jq( fireforg.currentLinkRegistryEntry ).children()
-                .each( 
-                         function () {
-                             var headingJQ = fireforg.jq( this );
-                             var file = headingJQ.attr("file");
-                             var headingText = headingJQ.attr("text");
-                             var tags = headingJQ.attr("tags");
-
-                             var tmpItem = document.createElement("menuitem");
-                             tmpItem.setAttribute("label", headingText + "  " + tags );
-                             tmpItem.setAttribute("onclick","fireforg.orgProtocolShowAnnotation(\"" + encodeURIComponent(file) + "\",\"" + encodeURIComponent(headingText) + "\",true)");
-                             popupMenu.appendChild( tmpItem );
-			 });
-
+           fireforg.populateMenuWithAnnotations( popupMenu, fireforg.currentLinkRegistryEntry );
+           
             popupMenu.openPopup( document.getElementById("fireforg_spi"),"before_end",0,0,false,null);
  
 	}
@@ -298,7 +285,52 @@ var fireforg = {
 	    req.open('POST', "org-protocol://" + url,true);
 	    req.send(null);
 	} catch (ex) { }
+    },
+    contextMenuItemShowing: function (e) {
+	//        alert("ContextMenuItemShowing");
+
+        var contextMenuEntry = document.getElementById('fireforg_ctx_menu_fireforg_popup');                
+
+	// remove all children
+	while(contextMenuEntry.hasChildNodes()){
+	    contextMenuEntry.removeChild(contextMenuEntry.lastChild);}
+
+        if( gContextMenu.onLink ) {
+	    var url = gContextMenu.link;
+
+	    var registryEntry = fireforg.getRegistryEntryForLink( url );
+
+            fireforg.populateMenuWithAnnotations( contextMenuEntry, registryEntry );
+             
+	} 
+
+	
+    },
+    populateMenuWithAnnotations: function (menu, registryEntry ) {
+	// remove all children
+	while(menu.hasChildNodes()){
+	    menu.removeChild(menu.lastChild);}
+
+        if( registryEntry ) {
+            fireforg.jq( registryEntry ).children()
+            .each( 
+                  function () {
+                      //                  alert( "This: " + this);
+                      var headingJQ = fireforg.jq( this );
+                      var file = headingJQ.attr("file");
+                      var headingText = headingJQ.attr("text");
+                      var tags = headingJQ.attr("tags");
+
+                      var tmpItem = document.createElement("menuitem");
+                      tmpItem.setAttribute("class","fireforg-popupmenu");
+                      tmpItem.setAttribute("label", headingText + "  " + tags );
+                      tmpItem.setAttribute("onclick","fireforg.orgProtocolShowAnnotation(\"" + encodeURIComponent(file) + "\",\"" + encodeURIComponent(headingText) + "\",true)");
+                      menu.appendChild( tmpItem );
+                  });
+
+        }
     }
+
 };
 window.addEventListener("load", function(e) { fireforg.onLoad(e); }, false);
 

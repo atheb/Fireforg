@@ -2,6 +2,6 @@
 pref("extensions.fireforg@burtzlaff.de.description", "chrome://fireforg/locale/fireforg.properties");
 pref("extensions.fireforg.registryFile","~/.org-fireforg-registry.xml");
 pref("extensions.fireforg.lookupLinksOnLoad", true);
-pref("extensions.fireforg.annotationLinkStyle", "border-style:solid;border-width:1px;background-color:lightblue;");
+pref("extensions.fireforg.annotationLinkStyle", "background-color:lightblue;");
 pref("extensions.fireforg.annotationLinkToolTip", true);
 

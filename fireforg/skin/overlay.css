@@ -20,6 +20,10 @@
 {
   -moz-image-region: rect(24px 40px 40px 24px);
 }
+.fireforg-popupmenu
+{
+  max-width: none !important;
+}
 .fireforg_img_normal
 {
   list-style-image: url("chrome://fireforg/skin/org-mode-unicorn_16.ico");

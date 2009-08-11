@@ -20,14 +20,27 @@
 
 
   <popupset id="mainPopupSet">
-    <menupopup id="fireforg_popup_dynamic">
+    <menupopup id="fireforg_popup_dynamic" class="fireforg-popupmenu">
     </menupopup>
-    <menupopup id="fireforg_popup_menu">
+    <menupopup id="fireforg_popup_menu" class="fireforg-popupmenu">
       <menuitem label="store-link" onclick="fireforg.orgProtocolStoreLink()"/>
       <menuitem label="remember" onclick="fireforg.orgProtocolRemember()"/>
     </menupopup>
   </popupset>
 
+  <!-- Add the entry "Fireforg" to the context menu -->
+
+  <popup id="contentAreaContextMenu" insertafter="context-searchselect">
+   <menuseparator id="menuseperator" />
+      <menu id="fireforg_ctx_menu_fireforg" label="&fireforg-contextmenu.label;" insertafter="menuseparator">
+<!--		class="menu-iconic" -->
+<!--		image="chrome://autocontext/skin/ac-status.png" -->
+	<menupopup  id="fireforg_ctx_menu_fireforg_popup" onpopupshowing="fireforg.contextMenuItemShowing(event);">
+           <menuitem label="Test" />
+        </menupopup>
+      </menu>
+  </popup>
 
 </overlay>
+
 

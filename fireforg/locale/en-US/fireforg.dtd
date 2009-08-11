@@ -1,3 +1,4 @@
 <!ENTITY fireforg.label "Your localized menuitem">
 <!ENTITY fireforgToolbar.label "Your Toolbar Button">
 <!ENTITY fireforgToolbar.tooltip "This is your toolbar button!">
+<!ENTITY fireforg-contextmenu.label "Fireforg">
