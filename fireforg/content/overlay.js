@@ -37,7 +37,7 @@ var fireforg = {
 
         var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
         var annotationLinkStyle = prefManager.getCharPref("extensions.fireforg.annotationLinkStyle");
-        var annotationLinkToolTip = prefManager.getBoolPref("extensions.fireforg.annotationLinkToolTip");
+        var annotationLinkTooltip = prefManager.getBoolPref("extensions.fireforg.annotationLinkTooltip");
 
         var linksJQ = fireforg.jq("a");
         
@@ -58,7 +58,7 @@ var fireforg = {
 		    objectJQ.attr("fireforgStyle", annotationLinkStyle);
 
                     // generate tooltip text from entry (BUG: Newline doesn't work here. Rewrite with proper menu on mouseover.)
-                    if( annotationLinkToolTip ) {
+                    if( annotationLinkTooltip ) {
                        var tooltipText = "";
                        fireforg.jq( registryEntry ).children().each( function () { tooltipText = tooltipText + fireforg.jq( this ).attr("text") + "\n"; });
 		       objectJQ.attr("title", tooltipText );
