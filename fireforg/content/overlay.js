@@ -222,6 +222,27 @@ var fireforg = {
 
 	this.initialized = true;
 	this.strings = document.getElementById("fireforg-strings");
+
+        // try to add "itemDone" handler to Zoteros translator
+        //        if( Zotero.Translate ) {
+        //  alert("Zotero Translate handler injected.");
+        //  Zotero.Translate.prototype.setHandler("itemDone", fireforg.zoteroItemDoneHandler );
+        //} else {
+        window.setTimeout( function () { if( Zotero.Translate ) {
+                    alert("Zotero translator handler injected.");
+                    //(new Zotero.Translate()).setHandler("itemDone", fireforg.zoteroItemDoneHandler );
+                    Zotero.Translate.prototype.fireforg_runHandler = Zotero.Translate.prototype.runHandler;
+                    Zotero.Translate.prototype.runHandler = function(type, argument) {
+                        if( type == "itemDone") {
+                            //                          alert("Zotero hijacked!");
+                            fireforg.zoteroItemDoneHandler( argument );
+                        }
+
+                        return this.fireforg_runHandler(type, argument);
+                    }
+                } },5000);
+        //}
+
     },
     onStatusbarIconClicked: function (ev) {
 	if( ev.button == 0 )
@@ -329,7 +350,36 @@ var fireforg = {
                   });
 
         }
+    },
+    // additional "itemDone" handler for Zoteros translator
+    // item : Zotero.item that has been processed
+    zoteroItemDoneHandler: function (item) {
+
+        alert("itemDoneHandler called with: \n" +
+              "type: " + Zotero.ItemTypes.getName(item.getType()) + "\n" + 
+              "title: " + item.getDisplayTitle(true) + "\n");
+        window.setTimeout( function () {
+                var translatorObj = new Zotero.Translate("export"); // create Translator for export
+                translatorObj.setItems( [ item ]);
+                translatorObj.setTranslator( "9cb70025-a888-4a29-a210-93ec52da40d4" ); // set Translator to use the BibTex translator
+                translatorObj.setHandler("done", fireforg._zoteroTranslationDone);
+                // deinject runHandler to avoid recursion
+                translatorObj.runHandler = translatorObj.fireforg_runHandler;
+                translatorObj.translate(); }
+            , 2000);
+
+    
+    },
+    _zoteroTranslationDone: function (obj, worked) {
+        if( !worked )
+            alert("Fireforg: Zotero BibTex export failed!");
+        else {
+            alert("BibTex: " + obj.output.replace(/\r\n/g, "\n") );
+        }
+        // Send to org
+
     }
+
 
 };
 window.addEventListener("load", function(e) { fireforg.onLoad(e); }, false);
