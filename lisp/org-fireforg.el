@@ -44,6 +44,12 @@
               :protocol "fireforg-show-annotation"
               :function org-fireforg-show-annotation))
 
+(add-to-list 'org-protocol-protocol-alist
+             '("Fireforg get bibtex entry: fireforg-bibtex-entry://<bibtex entry (encoded)>"
+              :protocol "fireforg-bibtex-entry"
+              :function org-fireforg-receive-bibtex-entry))
+
+
 ;; Searches for header in given file
 (defun org-fireforg-show-annotation (data)
   (let* ((arguments (org-protocol-split-data data t))
@@ -266,8 +272,47 @@ Use with caution.  This could slow down things a bit."
 
 
 
+(defun org-fireforg-receive-bibtex-entry (data)
+  (let* ((arguments (org-protocol-split-data data t))
+         (bibtex (nth 0 arguments)))
+    (save-excursion  
+      (set-buffer (get-buffer-create "*Fireforg.BibTex*"))
+      (insert (org-fireforg-parse-bibtex-entry bibtex))
+      
+      
+      )
+    nil))
 
 
+(defun org-fireforg-parse-bibtex-entry (bibtexEntryString)
+  (let ((org-fireforg-trim-string (function (lambda (string)
+          (replace-regexp-in-string "^[ \t]*" "" (replace-regexp-in-string "[ \t]*$" "" string)))))
+        (oneLineString (replace-regexp-in-string "\n" "" bibtexEntryString)))
+    (string-match "@\\([^ {]*\\) *{" oneLineString)
+    (let* ((entryType (match-string 1 oneLineString))
+           (tmpEntryContentStart (match-end 0))
+           result)
+      (string-match "} *$" oneLineString)
+      (let* ((tmpEntryContentEnd (match-beginning 0))
+             (entryContent (substring oneLineString tmpEntryContentStart tmpEntryContentEnd))
+             (entryContentSplit (split-string entryContent ","))
+             (entryId (funcall org-fireforg-trim-string (nth 0 entryContentSplit)))
+             tmp)
+        (setq result (list (cons "entry_type" entryType) (cons "entryCustId" entryId)))
+        (setq entryContentSplit (cdr entryContentSplit))
+        (while entryContentSplit
+          (setq tmp (concat tmp (car entryContentSplit)))
+          (cond ((= (length (split-string tmp "{"))  (length (split-string tmp "}")))
+                 (string-match "\\([^{]+\\)=" tmp)
+                 (setq result (cons (cons (funcall org-fireforg-trim-string (match-string 1 tmp)) (funcall org-fireforg-trim-string (substring tmp (match-end 0)))) result))
+                 (setq tmp ""))
+                (t))
+          (setq entryContentSplit (cdr entryContentSplit))) 
+        result))))
 
+(defun org-fireforg-bibtex-entry-to-properties (bibtexEntry)
+  (concat ":PROPERTIES:\n"
+   (reduce 'concat (mapcar (lambda (entry) (concat ":BIB_" (car entry) ": " (cdr entry) "\n")) bibtexEntry))
+   ":END"))
 
 (provide 'org-fireforg)

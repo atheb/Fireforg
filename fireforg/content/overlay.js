@@ -355,9 +355,9 @@ var fireforg = {
     // item : Zotero.item that has been processed
     zoteroItemDoneHandler: function (item) {
 
-        alert("itemDoneHandler called with: \n" +
+        /*alert("itemDoneHandler called with: \n" +
               "type: " + Zotero.ItemTypes.getName(item.getType()) + "\n" + 
-              "title: " + item.getDisplayTitle(true) + "\n");
+              "title: " + item.getDisplayTitle(true) + "\n");*/
         window.setTimeout( function () {
                 var translatorObj = new Zotero.Translate("export"); // create Translator for export
                 translatorObj.setItems( [ item ]);
@@ -374,10 +374,12 @@ var fireforg = {
         if( !worked )
             alert("Fireforg: Zotero BibTex export failed!");
         else {
-            alert("BibTex: " + obj.output.replace(/\r\n/g, "\n") );
+            var bibtex =  obj.output.replace(/\r\n/g, "\n");
+            alert("BibTex: " + bibtex );
+            
+            // Send to org
+            fireforg.orgProtocolSendURL("fireforg-bibtex-entry://" + encodeURIComponent( bibtex ) ); 
         }
-        // Send to org
-
     }
 
 
