@@ -276,8 +276,11 @@ Use with caution.  This could slow down things a bit."
   (message "Received bibtex string") ;; DEBUG
   (let* ((arguments (org-protocol-split-data data t))
          (bibtex (nth 0 arguments)))
+    (condition-case ex (progn
     (kill-new (org-fireforg-generate-heading (org-fireforg-parse-bibtex-entry bibtex)))
     (message "Saved entry header") 
+     )
+     'error (message (format "Cuaght exception:  [%s] " ex)))
     nil))
 
 (defun org-fireforg-parse-bibtex-entry (bibtexEntryString)
@@ -294,7 +297,7 @@ Use with caution.  This could slow down things a bit."
              (entryContentSplit (split-string entryContent ","))
              (entryId (funcall org-fireforg-trim-string (nth 0 entryContentSplit)))
              (tmp ""))
-        (setq result (list (cons "entry_type" entryType) (cons "entryCustId" entryId)))
+        (setq result (list (cons "entry_type" entryType) (cons "CUSTOM_ID" entryId)))
         (setq entryContentSplit (cdr entryContentSplit))
         (while entryContentSplit
           (setq tmp (concat tmp (if (= (length tmp) 0) "" ",") (car entryContentSplit)))
@@ -308,24 +311,36 @@ Use with caution.  This could slow down things a bit."
         result))))
 
 (defun org-fireforg-headings-to-bibtex (&optional match)
-  (reduce 'concat (org-map-entries (lambda () (concat (org-fireforg-heading-to-bibtex-entry) "\n\n")) match )))
+  (reduce 'concat (org-map-entries (lambda () (concat (org-fireforg-heading-to-bibtex-entry) ",\n\n")) match )))
 
 (defun org-fireforg-heading-to-bibtex-entry ()
   (let* ((properties (org-entry-properties))
          (type (cdr (assoc "BIB_entry_type" properties)))
-         (id (cdr (assoc "BIB_entryCustId" properties)))
+         (id (cdr (assoc "CUSTOM_ID" properties)))
          (properties (rassq-delete-all id (rassq-delete-all type properties))))
     (cond ((and type id)
            (concat "@" type "{" id 
                    (reduce 'concat 
-                           (mapcar (lambda (prop) (if (string= (substring (car prop) 0 4) "BIB_") (concat ",\n  " (substring (car prop) 4) " = {" (cdr prop) "}" ))) properties ) :initial-value "") "\n}")))))
+                           (mapcar (lambda (prop) (if (and (> (length (car prop)) 4) (string= (substring (car prop) 0 4) "BIB_")) (concat ",\n  " (substring (car prop) 4) " = {" (cdr prop) "}" ))) properties ) :initial-value "") "\n}")))))
 
 (defun org-fireforg-bibtex-entry-to-properties (bibtexEntry)
   (concat ":PROPERTIES:\n"
-   (reduce 'concat (mapcar (lambda (entry) (concat ":BIB_" (car entry) ": " (cdr entry) "\n")) bibtexEntry) :initial-value "")
+   (reduce 'concat (mapcar (lambda (entry) (concat (if (string= (car entry) "CUSTOM_ID") "  :CUSTOM_ID: " (concat "  :BIB_" (car entry) ": ")) (cdr entry) "\n")) bibtexEntry) :initial-value "")
    ":END:"))
 
 (defun org-fireforg-generate-heading (bibtexEntry)
-  (concat "* [[" (cdr (assoc "url" bibtexEntry)) "][" (cdr (assoc "title" bibtexEntry)) "]]\n" (org-fireforg-bibtex-entry-to-properties bibtexEntry)))
+  (let ((heading (concat "* [[" (cdr (assoc "url" bibtexEntry)) "][" (cdr (assoc "title" bibtexEntry)) "]]\n" (org-fireforg-bibtex-entry-to-properties bibtexEntry))))
+    (with-temp-buffer (insert heading) (goto-char (point-min)) (org-id-get-create) (buffer-substring (point-min) (point-max)))))
 
 (provide 'org-fireforg)
+
+(defmacro safe-wrap (fn &rest clean-up)
+  `(unwind-protect
+       (let (retval)
+         (condition-case ex
+             (setq retval (progn ,fn))
+           ('error
+            (message (format "Caught exception: [%s]" ex))
+            (setq retval (cons 'exception (list ex)))))
+         retval)
+     ,@clean-up))
