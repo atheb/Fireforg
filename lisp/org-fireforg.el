@@ -298,10 +298,10 @@ Use with caution.  This could slow down things a bit."
         (setq entryContentSplit (cdr entryContentSplit))
         (while entryContentSplit
           (setq tmp (concat tmp (if (= (length tmp) 0) "" ",") (car entryContentSplit)))
-          (cond ((= (length (split-string tmp "{"))  (length (split-string tmp "}")))
-                 (string-match "\\([^{]+\\)=" tmp)
+          (cond ((and (= (length (split-string tmp "{"))  (length (split-string tmp "}"))) (= (1- (mod (length (split-string tmp "\"")) 2)) 0 ))
+                 (string-match "\\([^{\"]+\\)=" tmp)
                  (setq result (cons (cons (funcall org-fireforg-trim-string (match-string 1 tmp)) 
-                                          (replace-regexp-in-string "}$" "" (replace-regexp-in-string "^{" "" (funcall org-fireforg-trim-string (substring tmp (match-end 0)))))) result))
+                                          (replace-regexp-in-string "[}\"]$" "" (replace-regexp-in-string "^[{\"]" "" (funcall org-fireforg-trim-string (substring tmp (match-end 0)))))) result))
                  (setq tmp ""))
                 (t))
           (setq entryContentSplit (cdr entryContentSplit))) 
