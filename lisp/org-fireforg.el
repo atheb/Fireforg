@@ -273,16 +273,12 @@ Use with caution.  This could slow down things a bit."
 
 
 (defun org-fireforg-receive-bibtex-entry (data)
+  (message "Received bibtex string") ;; DEBUG
   (let* ((arguments (org-protocol-split-data data t))
          (bibtex (nth 0 arguments)))
-    (save-excursion  
-      (set-buffer (get-buffer-create "*Fireforg.BibTex*"))
-      (insert (org-fireforg-parse-bibtex-entry bibtex))
-      
-      
-      )
+    (kill-new (org-fireforg-generate-heading (org-fireforg-parse-bibtex-entry bibtex)))
+    (message "Saved entry header") 
     nil))
-
 
 (defun org-fireforg-parse-bibtex-entry (bibtexEntryString)
   (let ((org-fireforg-trim-string (function (lambda (string)
@@ -297,22 +293,39 @@ Use with caution.  This could slow down things a bit."
              (entryContent (substring oneLineString tmpEntryContentStart tmpEntryContentEnd))
              (entryContentSplit (split-string entryContent ","))
              (entryId (funcall org-fireforg-trim-string (nth 0 entryContentSplit)))
-             tmp)
+             (tmp ""))
         (setq result (list (cons "entry_type" entryType) (cons "entryCustId" entryId)))
         (setq entryContentSplit (cdr entryContentSplit))
         (while entryContentSplit
-          (setq tmp (concat tmp (car entryContentSplit)))
+          (setq tmp (concat tmp (if (= (length tmp) 0) "" ",") (car entryContentSplit)))
           (cond ((= (length (split-string tmp "{"))  (length (split-string tmp "}")))
                  (string-match "\\([^{]+\\)=" tmp)
-                 (setq result (cons (cons (funcall org-fireforg-trim-string (match-string 1 tmp)) (funcall org-fireforg-trim-string (substring tmp (match-end 0)))) result))
+                 (setq result (cons (cons (funcall org-fireforg-trim-string (match-string 1 tmp)) 
+                                          (replace-regexp-in-string "}$" "" (replace-regexp-in-string "^{" "" (funcall org-fireforg-trim-string (substring tmp (match-end 0)))))) result))
                  (setq tmp ""))
                 (t))
           (setq entryContentSplit (cdr entryContentSplit))) 
         result))))
 
+(defun org-fireforg-headings-to-bibtex (&optional match)
+  (reduce 'concat (org-map-entries (lambda () (concat (org-fireforg-heading-to-bibtex-entry) "\n\n")) match )))
+
+(defun org-fireforg-heading-to-bibtex-entry ()
+  (let* ((properties (org-entry-properties))
+         (type (cdr (assoc "BIB_entry_type" properties)))
+         (id (cdr (assoc "BIB_entryCustId" properties)))
+         (properties (rassq-delete-all id (rassq-delete-all type properties))))
+    (cond ((and type id)
+           (concat "@" type "{" id 
+                   (reduce 'concat 
+                           (mapcar (lambda (prop) (if (string= (substring (car prop) 0 4) "BIB_") (concat ",\n  " (substring (car prop) 4) " = {" (cdr prop) "}" ))) properties ) :initial-value "") "\n}")))))
+
 (defun org-fireforg-bibtex-entry-to-properties (bibtexEntry)
   (concat ":PROPERTIES:\n"
-   (reduce 'concat (mapcar (lambda (entry) (concat ":BIB_" (car entry) ": " (cdr entry) "\n")) bibtexEntry))
-   ":END"))
+   (reduce 'concat (mapcar (lambda (entry) (concat ":BIB_" (car entry) ": " (cdr entry) "\n")) bibtexEntry) :initial-value "")
+   ":END:"))
+
+(defun org-fireforg-generate-heading (bibtexEntry)
+  (concat "* [[" (cdr (assoc "url" bibtexEntry)) "][" (cdr (assoc "title" bibtexEntry)) "]]\n" (org-fireforg-bibtex-entry-to-properties bibtexEntry)))
 
 (provide 'org-fireforg)
