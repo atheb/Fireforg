@@ -229,16 +229,19 @@ var fireforg = {
         //  Zotero.Translate.prototype.setHandler("itemDone", fireforg.zoteroItemDoneHandler );
         //} else {
         window.setTimeout( function () { if( Zotero.Translate ) {
-                    alert("Zotero translator handler injected.");
-                    //(new Zotero.Translate()).setHandler("itemDone", fireforg.zoteroItemDoneHandler );
-                    Zotero.Translate.prototype.fireforg_runHandler = Zotero.Translate.prototype.runHandler;
-                    Zotero.Translate.prototype.runHandler = function(type, argument) {
-                        if( type == "itemDone") {
-                            //                          alert("Zotero hijacked!");
-                            fireforg.zoteroItemDoneHandler( argument );
-                        }
+                    
+                    if( !Zotero.Translate.prototype.fireforg_runHandler ) {
+                    
+                        Zotero.Translate.prototype.fireforg_runHandler = Zotero.Translate.prototype.runHandler;
+                        Zotero.Translate.prototype.runHandler = function(type, argument) {
+                            if( type == "itemDone") {
+                                //                          alert("Zotero hijacked!");
+                                fireforg.zoteroItemDoneHandler( argument );
+                            }
 
-                        return this.fireforg_runHandler(type, argument);
+                            return this.fireforg_runHandler(type, argument);
+                        }
+                        alert("Zotero translator handler injected.");
                     }
                 } },5000);
         //}
@@ -249,8 +252,7 @@ var fireforg = {
 	    fireforg.showLinkListPopup();
         else {
 	    document.getElementById('fireforg_popup_menu').openPopup( document.getElementById("fireforg_spi"),"before_end",0,0,false,null);
-	}
-           
+	}           
     },
     showLinkListPopup: function () {
    
@@ -359,6 +361,8 @@ var fireforg = {
               "type: " + Zotero.ItemTypes.getName(item.getType()) + "\n" + 
               "title: " + item.getDisplayTitle(true) + "\n");*/
         window.setTimeout( function () {
+                alert( "item.attachments : " + item.getAttachments());
+
                 var translatorObj = new Zotero.Translate("export"); // create Translator for export
                 translatorObj.setItems( [ item ]);
                 translatorObj.setTranslator( "9cb70025-a888-4a29-a210-93ec52da40d4" ); // set Translator to use the BibTex translator
@@ -375,7 +379,7 @@ var fireforg = {
             alert("Fireforg: Zotero BibTex export failed!");
         else {
             var bibtex =  obj.output.replace(/\r\n/g, "\n");
-            alert("BibTex: " + bibtex );
+            //alert("BibTex: " + bibtex );
             
             // Send to org
             fireforg.orgProtocolSendURL("fireforg-bibtex-entry://" + encodeURIComponent( bibtex ) ); 
