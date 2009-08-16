@@ -303,6 +303,7 @@ var fireforg = {
             stream.init(file, 0x02 | 0x08 | 0x20, 0666, 0);
             var finalString = "org-protocol://" + url;
             stream.write( finalString, finalString.length);
+            stream.close();
 
         } else {
             var req = new XMLHttpRequest();
