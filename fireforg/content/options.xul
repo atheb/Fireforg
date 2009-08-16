@@ -9,11 +9,16 @@
       <preference id="annotationLinkStyle" name="extensions.fireforg.annotationLinkStyle" type="string"/>
       <preference id="annotationLinkTooltip" name="extensions.fireforg.annotationLinkTooltip" type="bool"/>
       <preference id="injectZotero" name="extensions.fireforg.injectZotero" type="bool"/>
+      <!-- temporary options for org-protocol mac workaround -->
+      <preference id="macWorkaround" name="extensions.fireforg.macWorkaround" type="bool"/>
+      <preference id="macWorkaroundFile" name="extensions.fireforg.macWorkaroundFile" type="string"/>
     </preferences>
     <label>&prefRegistryFile.label;</label><textbox preference="registryFile"/>
     <checkbox preference="lookupLinksOnLoad" label="&prefLookupLinksOnLoad.label;"/>
     <label>&prefAnnotationLinkStyle.label;</label><textbox preference="annotationLinkStyle"/>
     <checkbox preference="annotationLinkTooltip" label="&prefAnnotationLinkTooltip.label;"/>
     <checkbox preference="injectZotero" label="&injectZotero.label;"/>
+    <checkbox preference="macWorkaround" label="Enable Workaround for Mac"/>
+    <label>Temporary file for Mac workaround</label><textbox preference="macWorkaroundFile"/>
   </prefpane>
 </prefwindow>

@@ -286,11 +286,31 @@ var fireforg = {
         fireforg.orgProtocolSendURL("remember://" + encodeURIComponent(window.content.document.URL) + "/" + encodeURIComponent(document.title) + "/" + encodeURIComponent(window.getSelection()));
     },
     orgProtocolSendURL: function (url) {
-        var req = new XMLHttpRequest();
-	try {
-	    req.open('POST', "org-protocol://" + url,true);
-	    req.send(null);
-	} catch (ex) { }
+        var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+        
+        if( prefManager.getBoolPref("extensions.fireforg.macWorkaround") ) { // Workaround
+            var tmpFileName = prefManager.getCharPref("extensions.fireforg.macWorkaroundFile");
+            var file = Components.classes["@mozilla.org/file/local;1"]
+                .createInstance(Components.interfaces.nsILocalFile);
+            file.initWithPath( tmpFileName );
+            if(file.exists() == false) {
+                file.create( Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 420);
+            }
+
+            var stream = Components.classes["@mozilla.org/network/file-output-stream;1"]
+                .createInstance(Components.interfaces.nsIFileOutputStream);
+
+            stream.init(file, 0x02 | 0x08 | 0x20, 0666, 0);
+            var finalString = "org-protocol://" + url;
+            stream.write( finalString, finalString.length);
+
+        } else {
+            var req = new XMLHttpRequest();
+            try {
+                req.open('POST', "org-protocol://" + url,true);
+                req.send(null);
+            } catch (ex) { }
+        }
     },
     contextMenuItemShowing: function (e) {
 	//        alert("ContextMenuItemShowing");
