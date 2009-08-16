@@ -280,7 +280,7 @@ var fireforg = {
         document.getElementById('fireforg_spi_label_tags').setAttribute("value",tagString);
     },
     orgProtocolStoreLink: function () {
-	fireforg.orgProtocolSendURL("store-link://" + encodeURIComponent(window.content.document.URL),true);// + "/" + encodeURIComponent(document.title), true);
+	fireforg.orgProtocolSendURL("store-link://" + encodeURIComponent(window.content.document.URL) + "/" + encodeURIComponent(document.title));
     },
     orgProtocolRemember: function () {
         fireforg.orgProtocolSendURL("remember://" + encodeURIComponent(window.content.document.URL) + "/" + encodeURIComponent(document.title) + "/" + encodeURIComponent(window.getSelection()));
