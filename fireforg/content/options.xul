@@ -8,10 +8,12 @@
       <preference id="lookupLinksOnLoad" name="extensions.fireforg.lookupLinksOnLoad" type="bool"/>
       <preference id="annotationLinkStyle" name="extensions.fireforg.annotationLinkStyle" type="string"/>
       <preference id="annotationLinkTooltip" name="extensions.fireforg.annotationLinkTooltip" type="bool"/>
+      <preference id="injectZotero" name="extensions.fireforg.injectZotero" type="bool"/>
     </preferences>
     <label>&prefRegistryFile.label;</label><textbox preference="registryFile"/>
     <checkbox preference="lookupLinksOnLoad" label="&prefLookupLinksOnLoad.label;"/>
     <label>&prefAnnotationLinkStyle.label;</label><textbox preference="annotationLinkStyle"/>
     <checkbox preference="annotationLinkTooltip" label="&prefAnnotationLinkTooltip.label;"/>
+    <checkbox preference="injectZotero" label="&injectZotero.label;"/>
   </prefpane>
 </prefwindow>

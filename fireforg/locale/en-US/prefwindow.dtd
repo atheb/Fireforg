@@ -12,3 +12,4 @@
 <!ENTITY prefAnnotationLinkTooltip.label "Overwrite tooltip for links with annotations">
 <!ENTITY prefAnnotationLinkTooltip.accesskey "T">
 <!ENTITY prefRegistryFile.label "Registry file:">
+<!ENTITY injectZotero.label "Inject Zotero. WARNING: No guarantee that this won't break Zotero database. Restart Firefox.">

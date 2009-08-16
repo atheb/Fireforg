@@ -4,4 +4,4 @@ pref("extensions.fireforg.registryFile","~/.org-fireforg-registry.xml");
 pref("extensions.fireforg.lookupLinksOnLoad", true);
 pref("extensions.fireforg.annotationLinkStyle", "background-color:lightblue;");
 pref("extensions.fireforg.annotationLinkToolTip", true);
-
+pref("extensions.fireforg.injectZotero",false);

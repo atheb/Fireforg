@@ -194,7 +194,9 @@ var fireforg = {
 	}
     },
     onLoad: function() {
-	// init variables
+	var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+
+        // init variables
         fireforg.timeout = window.setTimeout("",10);
         fireforg.timeoutCount = 0;
 
@@ -223,28 +225,9 @@ var fireforg = {
 	this.initialized = true;
 	this.strings = document.getElementById("fireforg-strings");
 
-        // try to add "itemDone" handler to Zoteros translator
-        //        if( Zotero.Translate ) {
-        //  alert("Zotero Translate handler injected.");
-        //  Zotero.Translate.prototype.setHandler("itemDone", fireforg.zoteroItemDoneHandler );
-        //} else {
-        window.setTimeout( function () { if( Zotero.Translate ) {
-                    
-                    if( !Zotero.Translate.prototype.fireforg_runHandler ) {
-                    
-                        Zotero.Translate.prototype.fireforg_runHandler = Zotero.Translate.prototype.runHandler;
-                        Zotero.Translate.prototype.runHandler = function(type, argument) {
-                            if( type == "itemDone") {
-                                //                          alert("Zotero hijacked!");
-                                fireforg.zoteroItemDoneHandler( argument );
-                            }
-
-                            return this.fireforg_runHandler(type, argument);
-                        }
-                        alert("Zotero translator handler injected.");
-                    }
-                } },5000);
-        //}
+        if( prefManager.getBoolPref("extensions.fireforg.injectZotero") )        
+            window.setTimeout( fireforg.injectZoteroAccordingToPref ,5000);
+        
 
     },
     onStatusbarIconClicked: function (ev) {
@@ -353,15 +336,40 @@ var fireforg = {
 
         }
     },
+
+    injectZoteroAccordingToPref: function () {
+        var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+        if( prefManager.getBoolPref("extensions.fireforg.injectZotero") ) {
+            if( Zotero.Translate ) {
+                if( !Zotero.Translate.prototype.fireforg_runHandler ) {
+                    Zotero.Translate.prototype.fireforg_runHandler = Zotero.Translate.prototype.runHandler;
+                    Zotero.Translate.prototype.runHandler = function(type, argument) {
+                        if( type == "itemDone") {
+                            fireforg.zoteroItemDoneHandler( argument );
+                        }
+                        return this.fireforg_runHandler(type, argument);
+                    }
+                    //  alert("Zotero translator handler injected.");
+                }
+            }
+        } else { // remove injection
+            if( Zotero.Translate() ) {
+                if( Zotero.Translate.prototype.fireforg_runHandler ) {
+                    Zotero.Translate.prototype.runHandler = Zoter.Translate.prototype.fireforg_runHandler;
+                    //alert("Zotero injection removed");
+                }
+            }
+        }
+    },
     // additional "itemDone" handler for Zoteros translator
     // item : Zotero.item that has been processed
     zoteroItemDoneHandler: function (item) {
 
         /*alert("itemDoneHandler called with: \n" +
-              "type: " + Zotero.ItemTypes.getName(item.getType()) + "\n" + 
-              "title: " + item.getDisplayTitle(true) + "\n");*/
+          "type: " + Zotero.ItemTypes.getName(item.getType()) + "\n" + 
+          "title: " + item.getDisplayTitle(true) + "\n");*/
         window.setTimeout( function () {
-                alert( "item.attachments : " + item.getAttachments());
+                //alert( "item.attachments : " + item.getAttachments());
 
                 var translatorObj = new Zotero.Translate("export"); // create Translator for export
                 translatorObj.setItems( [ item ]);
