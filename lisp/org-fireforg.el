@@ -49,6 +49,21 @@
               :protocol "fireforg-bibtex-entry"
               :function org-fireforg-receive-bibtex-entry))
 
+(defgroup org-fireforg nil
+  "Options for the Fireforg extension of Org-mode."
+  :group 'org)
+
+(defcustom org-fireforg-received-bibtex-format 'heading
+  "Non-nil means, transform bibtex entries.
+
+  If the variable is `headers' the entry is transformed into a
+  heading with the bibtex entries as properties prefixed with
+  `BIB_'. The CUSTOM_ID is set to the bibtex key."
+  :group 'org-fireforg
+  :type '(choice
+	  (const :tag "Create heading with properties" heading)
+	  (const :tag "BibTex" nil)))
+
 
 ;; Searches for header in given file
 (defun org-fireforg-show-annotation (data)
@@ -276,7 +291,8 @@ Use with caution.  This could slow down things a bit."
   (message "Received bibtex string") ;; DEBUG
   (let* ((arguments (org-protocol-split-data data t))
          (bibtex (nth 0 arguments)))
-    (kill-new (org-fireforg-generate-heading (org-fireforg-parse-bibtex-entry-wrapper bibtex)))
+    (kill-new (cond ((eq org-fireforg-received-bibtex-format 'heading) (org-fireforg-generate-heading (org-fireforg-parse-bibtex-entry-wrapper bibtex)))
+                    ((not org-fireforg-received-bibtex-format) bibtex)))
     (message "Saved entry header") 
      )
    nil)
@@ -294,7 +310,7 @@ Use with caution.  This could slow down things a bit."
   (replace-regexp-in-string "[\"}] *$" "" (replace-regexp-in-string "^ *[{\"]" "" string)))
 
 (defun org-fireforg-headings-to-bibtex (&optional match)
-  (reduce 'concat (org-map-entries (lambda () (concat (org-fireforg-heading-to-bibtex-entry) ",\n\n")) match )))
+  (reduce 'concat (org-map-entries (lambda () (concat (org-fireforg-heading-to-bibtex-entry) "\n\n")) match )))
 
 (defun org-fireforg-heading-to-bibtex-entry ()
   (let* ((properties (org-entry-properties))
@@ -316,7 +332,27 @@ Use with caution.  This could slow down things a bit."
 
 (defun org-fireforg-generate-heading (bibtexEntry)
   (let ((heading (concat "* [[" (org-fireforg-bibtex-trim-string (cdr (assoc "url" bibtexEntry))) "][" (org-fireforg-bibtex-trim-string (cdr (assoc "title" bibtexEntry))) "]]\n" (org-fireforg-bibtex-entry-to-properties bibtexEntry))))
-    (with-temp-buffer (insert heading) (goto-char (point-min)) (org-id-get-create) (buffer-substring (point-min) (point-max)))))
+    ;;(with-temp-buffer (insert heading) (goto-char (point-min)) (org-id-get-create) (buffer-substring (point-min) (point-max)))
+    heading
+    ))
+
+;; exports the bibtex properties of the current buffer to selectable file
+(defun org-fireforg-export-bibtex-to-file (file)
+  (interactive "F")
+  (save-excursion 
+    (cond ((not file) (error "No file supplied"))
+          ((let ((bibtex (org-fireforg-headings-to-bibtex)))
+             (with-temp-buffer 
+             (insert bibtex)
+             (write-file file t)))))))
+
+(defun org-fireforg-export-bibtex-to-new-buffer ()
+  (interactive)
+  (let ((bibtex (org-fireforg-headings-to-bibtex)))
+    (switch-to-buffer (generate-new-buffer "*BibTeX export*"))
+    (insert bibtex)
+    (goto-char (point-min))))
+    
 
 (provide 'org-fireforg)
 
