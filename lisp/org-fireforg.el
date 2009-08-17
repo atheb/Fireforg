@@ -351,7 +351,8 @@ Use with caution.  This could slow down things a bit."
   (let ((bibtex (org-fireforg-headings-to-bibtex)))
     (switch-to-buffer (generate-new-buffer "*BibTeX export*"))
     (insert bibtex)
-    (goto-char (point-min))))
+    (goto-char (point-min))
+    (bibtex-mode)))
     
 
 (provide 'org-fireforg)
