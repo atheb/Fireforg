@@ -404,9 +404,9 @@ var fireforg = {
     
     },
     _zoteroTranslationDone: function (obj, worked) {
-        if( !worked )
-            alert("Fireforg: Zotero BibTex export failed!");
-        else {
+        if( !worked ) {
+            //            alert("Fireforg: Zotero BibTex export failed!");
+        } else {
             var bibtex =  obj.output.replace(/\r\n/g, "\n");
             //alert("BibTex: " + bibtex );
             
