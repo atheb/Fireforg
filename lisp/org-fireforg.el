@@ -5,7 +5,7 @@
 ;; Copyright 2009 Andreas Burtzlaff
 ;;
 ;; Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-;; Version: 0.1alpha4
+;; Version: 0.1alpha5
 ;; Keywords: org-mode filesystem tree
 ;;
 ;; This file is not part of GNU Emacs.
@@ -62,8 +62,9 @@
   :group 'org-fireforg
   :type '(choice
 	  (const :tag "Create heading with properties" heading)
-	  (const :tag "BibTex" nil)))
-
+	  (const :tag "BibTex" nil)
+          (const :tag "Create heading with properties and BibTeX entry as content" headingWithPropsAndBibTeXContent)
+          (const :tag "Create heading with BibTeX entry as content" headingWithBibTeXContent)))
 
 ;; Searches for header in given file
 (defun org-fireforg-show-annotation (data)
@@ -290,12 +291,18 @@ Use with caution.  This could slow down things a bit."
 (defun org-fireforg-receive-bibtex-entry (data)
   (message "Received bibtex string") ;; DEBUG
   (let* ((arguments (org-protocol-split-data data t))
-         (bibtex (nth 0 arguments)))
-    (kill-new (cond ((eq org-fireforg-received-bibtex-format 'heading) (org-fireforg-generate-heading (org-fireforg-parse-bibtex-entry-wrapper bibtex)))
+         (bibtex (nth 0 arguments))
+         (bibtexParsed (org-fireforg-parse-bibtex-entry-wrapper bibtex)))
+    (kill-new (cond ((eq org-fireforg-received-bibtex-format 'heading)
+                     (concat (org-fireforg-generate-heading bibtexParsed) "\n" (org-fireforg-bibtex-entry-to-properties bibtexParsed)))
+                    ((eq org-fireforg-received-bibtex-format 'headingWithPropsAndBibTeXContent)
+                     (concat (org-fireforg-generate-heading bibtexParsed) "\n" (org-fireforg-bibtex-entry-to-properties bibtexParsed) bibtex "\n"))
+                    ((eq org-fireforg-received-bibtex-format 'headingWithBibTeXContent)
+                     (concat (org-fireforg-generate-heading bibtexParsed) "\n" bibtex "\n"))
                     ((not org-fireforg-received-bibtex-format) bibtex)))
     (message "Saved entry header") 
-     )
-   nil)
+    )
+  nil)
 
 (defun org-fireforg-parse-bibtex-entry-wrapper (bibtexEntryString)
   (with-temp-buffer
@@ -328,10 +335,10 @@ Use with caution.  This could slow down things a bit."
      (concat (cond ((string= (car entry) "=key=") "  :CUSTOM_ID")
                    ((string= (car entry) "=type=") "  :BIB_entryType")
                    (t (concat "  :BIB_" (car entry) ))) ": " (cdr entry) "\n")) bibtexEntry) :initial-value "")
-   ":END:"))
+   ":END:\n"))
 
 (defun org-fireforg-generate-heading (bibtexEntry)
-  (let ((heading (concat "* [[" (org-fireforg-bibtex-trim-string (cdr (assoc "url" bibtexEntry))) "][" (org-fireforg-bibtex-trim-string (cdr (assoc "title" bibtexEntry))) "]]\n" (org-fireforg-bibtex-entry-to-properties bibtexEntry))))
+  (let ((heading (concat "* [[" (org-fireforg-bibtex-trim-string (cdr (assoc "url" bibtexEntry))) "][" (org-fireforg-bibtex-trim-string (cdr (assoc "title" bibtexEntry))) "]]" )))
     ;;(with-temp-buffer (insert heading) (goto-char (point-min)) (org-id-get-create) (buffer-substring (point-min) (point-max)))
     heading
     ))
