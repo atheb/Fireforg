@@ -32,6 +32,10 @@
 ;;    ---
 ;;      Opens the given file in emacs and searches for header
 ;;
+;;    fireforg-bibtex-entry://<BibTeX entry (encoded)>
+;;    ---
+;;      Sends a BibTeX entry that is formatted according to `org-fireforg-received-bibtex-format'
+;;      and put into the kill ring
 
 (require 'org)
 
@@ -363,14 +367,3 @@ Use with caution.  This could slow down things a bit."
     
 
 (provide 'org-fireforg)
-
-(defmacro safe-wrap (fn &rest clean-up)
-  `(unwind-protect
-       (let (retval)
-         (condition-case ex
-             (setq retval (progn ,fn))
-           ('error
-            (message (format "Caught exception: [%s]" ex))
-            (setq retval (cons 'exception (list ex)))))
-         retval)
-     ,@clean-up))

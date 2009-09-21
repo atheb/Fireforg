@@ -282,8 +282,17 @@ var fireforg = {
     orgProtocolStoreLink: function () {
 	fireforg.orgProtocolSendURL("store-link://" + encodeURIComponent(window.content.document.URL) + "/" + encodeURIComponent(document.title));
     },
-    orgProtocolRemember: function () {
-        fireforg.orgProtocolSendURL("remember://" + encodeURIComponent(window.content.document.URL) + "/" + encodeURIComponent(document.title) + "/" + encodeURIComponent(window.getSelection()));
+    orgProtocolRemember: function ( rememberTemplate ) {
+        if( !rememberTemplate ) {
+            // get template from preferences
+            var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+            rememberTemplate = prefManager.getCharPref("extensions.fireforg.defaultRememberTemplate");
+        }
+        if( rememberTemplate && rememberTemplate != "" )
+            rememberTemplate = rememberTemplate + "/";
+        else
+            rememberTemplate = "";
+        fireforg.orgProtocolSendURL("remember://" + rememberTemplate + encodeURIComponent(window.content.document.URL) + "/" + encodeURIComponent(document.title) + "/" + encodeURIComponent(window.getSelection()));
     },
     orgProtocolSendURL: function (url) {
         var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
