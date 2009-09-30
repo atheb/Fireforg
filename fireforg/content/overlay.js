@@ -3,7 +3,7 @@
 //  Copyright 2009 Andreas Burtzlaff
 
 //  Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-//  Version: 0.1a
+//  Version: 0.1alpha6
 
 //  This file is not part of GNU Emacs.
 
@@ -29,15 +29,18 @@ var fireforg = {
     jq: function (a) { return $mb( a, window.content.document); },
 
     requestid: 0,
+    getPreferenceManager: function () {
+        return Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+    },
+
     // fetch links
     lookupAndModifyLinks: function () {
 
         // remove existing annotations;
         fireforg.jq(".orgNote").remove();
 
-        var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
-        var annotationLinkStyle = prefManager.getCharPref("extensions.fireforg.annotationLinkStyle");
-        var annotationLinkTooltip = prefManager.getBoolPref("extensions.fireforg.annotationLinkTooltip");
+        var annotationLinkStyle = fireforg.getPreferenceManager().getCharPref("extensions.fireforg.annotationLinkStyle");
+        var annotationLinkTooltip = fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.annotationLinkTooltip");
 
         var linksJQ = fireforg.jq("a");
         
@@ -95,8 +98,7 @@ var fireforg = {
     onLoadSite: function () {
 
 	if( fireforg.loadRegistryFromFile() ) {
-            var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
-            if( prefManager.getBoolPref("extensions.fireforg.lookupLinksOnLoad") )
+            if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.lookupLinksOnLoad") )
 		fireforg.lookupAndModifyLinks();
 	} else {
 	    fireforg.setStatusBarIconError();
@@ -156,7 +158,7 @@ var fireforg = {
     loadRegistryFromFile: function () {
 	var file = Components.classes["@mozilla.org/file/local;1"]
 	.createInstance(Components.interfaces.nsILocalFile);
-	file.initWithPath( Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch).getCharPref("extensions.fireforg.registryFile") );
+	file.initWithPath( fireforg.getPreferenceManager().getCharPref("extensions.fireforg.registryFile") );
 	if ( !file.exists() ) {
 	    return false;
 	} else {
@@ -194,8 +196,7 @@ var fireforg = {
 	}
     },
     onLoad: function() {
-	var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
-
+	
         // init variables
         fireforg.timeout = window.setTimeout("",10);
         fireforg.timeoutCount = 0;
@@ -225,7 +226,7 @@ var fireforg = {
 	this.initialized = true;
 	this.strings = document.getElementById("fireforg-strings");
 
-        if( prefManager.getBoolPref("extensions.fireforg.injectZotero") )        
+        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.injectZotero") )        
             window.setTimeout( fireforg.injectZoteroAccordingToPref ,5000);
         
 
@@ -234,8 +235,35 @@ var fireforg = {
 	if( ev.button == 0 )
 	    fireforg.showLinkListPopup();
         else {
-	    document.getElementById('fireforg_popup_menu').openPopup( document.getElementById("fireforg_spi"),"before_end",0,0,false,null);
+	    var menu = document.getElementById('fireforg_popup_menu');
+            var templateList = fireforg.prefRememberTemplates();
+            fireforg.generatePopupMenu( menu, templateList );
+            menu.openPopup( document.getElementById("fireforg_spi"),"before_end",0,0,false,null);
 	}           
+    },
+    generatePopupMenu: function ( menu, rememberTemplateList, linkToStoreO, titleToStoreO ) {
+        if( !linkToStoreO ) linkToStoreO = "";
+        if( !titleToStoreO ) titleToStoreO = linkToStoreO;
+
+      	// remove all children
+	while(menu.hasChildNodes()){
+	    menu.removeChild(menu.lastChild);}
+
+        // add store link entry
+        var tmpItem = document.createElement("menuitem");
+        tmpItem.setAttribute("class","fireforg-popupmenu");
+        tmpItem.setAttribute("label", "store-link" );
+        tmpItem.setAttribute("onclick","fireforg.orgProtocolStoreLink(\"" + linkToStoreO + "\",\"" + titleToStoreO + "\")");
+        menu.appendChild( tmpItem );
+
+        rememberTemplateList.forEach( function( element ) {
+        var tmpItem = document.createElement("menuitem");
+        tmpItem.setAttribute("class","fireforg-popupmenu");
+        tmpItem.setAttribute("label", "remember (" + element + ")" );
+        tmpItem.setAttribute("onclick","fireforg.orgProtocolRemember(\"" + element + "\",\"" + linkToStoreO + "\",\"" + titleToStoreO + "\")");
+        menu.appendChild( tmpItem );
+            })
+        
     },
     showLinkListPopup: function () {
    
@@ -279,26 +307,25 @@ var fireforg = {
     setStatusBarTags: function (tagString) {
         document.getElementById('fireforg_spi_label_tags').setAttribute("value",tagString);
     },
-    orgProtocolStoreLink: function () {
-	fireforg.orgProtocolSendURL("store-link://" + encodeURIComponent(window.content.document.URL) + "/" + encodeURIComponent(document.title));
+    orgProtocolStoreLink: function ( link, title) {
+        if( !link || link === "" )
+            link = window.content.document.URL;
+        if( !title || title === "" )
+            title = document.title;
+	fireforg.orgProtocolSendURL("store-link://" + encodeURIComponent(link) + "/" + encodeURIComponent(title));
     },
-    orgProtocolRemember: function ( rememberTemplate ) {
-        if( !rememberTemplate ) {
-            // get template from preferences
-            var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
-            rememberTemplate = prefManager.getCharPref("extensions.fireforg.defaultRememberTemplate");
-        }
+    orgProtocolRemember: function ( rememberTemplate, urlO, titleO ) {
+        if( !urlO || urlO === "" ) urlO = window.content.document.URL;
+        if( !titleO || titleO === "" ) titleO = document.title;
         if( rememberTemplate && rememberTemplate != "" )
             rememberTemplate = rememberTemplate + "/";
         else
             rememberTemplate = "";
-        fireforg.orgProtocolSendURL("remember://" + rememberTemplate + encodeURIComponent(window.content.document.URL) + "/" + encodeURIComponent(document.title) + "/" + encodeURIComponent(window.getSelection()));
+        fireforg.orgProtocolSendURL("remember://" + rememberTemplate + encodeURIComponent(urlO) + "/" + encodeURIComponent(titleO) + "/" + encodeURIComponent(window.getSelection()));
     },
     orgProtocolSendURL: function (url) {
-        var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
-        
-        if( prefManager.getBoolPref("extensions.fireforg.macWorkaround") ) { // Workaround
-            var tmpFileName = prefManager.getCharPref("extensions.fireforg.macWorkaroundFile");
+        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.macWorkaround") ) { // Workaround
+            var tmpFileName = fireforg.getPreferenceManager().getCharPref("extensions.fireforg.macWorkaroundFile");
             var file = Components.classes["@mozilla.org/file/local;1"]
                 .createInstance(Components.interfaces.nsILocalFile);
             file.initWithPath( tmpFileName );
@@ -338,10 +365,25 @@ var fireforg = {
 
             fireforg.populateMenuWithAnnotations( contextMenuEntry, registryEntry );
              
-	} 
-
-	
+	} 	
     },
+    contextMenuActionsItemShowing: function (e) {
+	// alert("ContextMenuActionsItemShowing");
+
+        var contextActionsMenuEntry = document.getElementById('fireforg_ctx_menu_fireforg_popup_actions');                
+
+	// remove all children
+	while(contextActionsMenuEntry.hasChildNodes()){
+	    contextActionsMenuEntry.removeChild(contextActionsMenuEntry.lastChild);}
+
+        if( gContextMenu.onLink ) {
+	    var url = gContextMenu.link;
+
+            fireforg.generatePopupMenu( contextActionsMenuEntry, fireforg.prefRememberTemplates(), url);             
+	} 	
+    },
+
+
     populateMenuWithAnnotations: function (menu, registryEntry ) {
 	// remove all children
 	while(menu.hasChildNodes()){
@@ -368,8 +410,7 @@ var fireforg = {
     },
 
     injectZoteroAccordingToPref: function () {
-        var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
-        if( prefManager.getBoolPref("extensions.fireforg.injectZotero") ) {
+        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.injectZotero") ) {
             if( Zotero.Translate ) {
                 if( !Zotero.Translate.prototype.fireforg_runHandler ) {
                     Zotero.Translate.prototype.fireforg_runHandler = Zotero.Translate.prototype.runHandler;
@@ -422,9 +463,12 @@ var fireforg = {
             // Send to org
             fireforg.orgProtocolSendURL("fireforg-bibtex-entry://" + encodeURIComponent( bibtex ) ); 
         }
-    }
+        },
 
-
+        /* READ PREFERENCES */
+        prefRememberTemplates: function () {
+           return fireforg.getPreferenceManager().getCharPref("extensions.fireforg.rememberTemplates").split(',');
+        }
 };
 window.addEventListener("load", function(e) { fireforg.onLoad(e); }, false);
 

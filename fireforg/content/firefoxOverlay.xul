@@ -24,7 +24,7 @@
     </menupopup>
     <menupopup id="fireforg_popup_menu" class="fireforg-popupmenu">
       <menuitem label="store-link" onclick="fireforg.orgProtocolStoreLink()"/>
-      <menuitem label="remember" onclick="fireforg.orgProtocolRemember()"/>
+      <!-- <menuitem label="remember" onclick="fireforg.orgProtocolRemember()"/> -->
     </menupopup>
   </popupset>
 
@@ -36,6 +36,13 @@
 <!--		class="menu-iconic" -->
 <!--		image="chrome://autocontext/skin/ac-status.png" -->
 	<menupopup  id="fireforg_ctx_menu_fireforg_popup" onpopupshowing="fireforg.contextMenuItemShowing(event);">
+           <menuitem label="Test" />
+        </menupopup>
+      </menu>
+      <menu id="fireforg_ctx_menu_fireforg_actions" label="&fireforg-contextmenu-actions.label;" insertafter="menuseparator">
+<!--		class="menu-iconic" -->
+<!--		image="chrome://autocontext/skin/ac-status.png" -->
+	<menupopup  id="fireforg_ctx_menu_fireforg_popup_actions" onpopupshowing="fireforg.contextMenuActionsItemShowing(event);">
            <menuitem label="Test" />
         </menupopup>
       </menu>

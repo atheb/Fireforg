@@ -12,6 +12,6 @@
 <!ENTITY prefAnnotationLinkTooltip.label "Overwrite tooltip for links with annotations">
 <!ENTITY prefAnnotationLinkTooltip.accesskey "T">
 <!ENTITY prefRegistryFile.label "Registry file:">
-<!ENTITY prefDefaultRememberTemplate.label "Use remember template:">
+<!ENTITY prefDefaultRememberTemplate.label "List of characters specifying available remember templates (separator: ','):">
 <!ENTITY prefRememberTemplate.accesskey "R">
 <!ENTITY injectZotero.label "Inject Zotero. WARNING: No guarantee that this won't break Zotero database. Restart Firefox.">

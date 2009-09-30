@@ -5,7 +5,7 @@
 ;; Copyright 2009 Andreas Burtzlaff
 ;;
 ;; Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-;; Version: 0.1alpha5
+;; Version: 0.1alpha6
 ;; Keywords: org-mode filesystem tree
 ;;
 ;; This file is not part of GNU Emacs.
