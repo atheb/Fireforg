@@ -3,7 +3,7 @@
 //  Copyright 2009 Andreas Burtzlaff
 
 //  Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-//  Version: 0.1alpha6
+//  Version: 0.1alpha7
 
 //  This file is not part of GNU Emacs.
 

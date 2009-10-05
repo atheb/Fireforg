@@ -5,7 +5,7 @@
 ;; Copyright 2009 Andreas Burtzlaff
 ;;
 ;; Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-;; Version: 0.1alpha6
+;; Version: 0.1alpha7
 ;; Keywords: org-mode filesystem tree
 ;;
 ;; This file is not part of GNU Emacs.
@@ -74,12 +74,16 @@
 (defun org-fireforg-show-annotation (data)
   (let* ((arguments (org-protocol-split-data data t))
          (file (nth 0 arguments))
-         (heading (nth 1 arguments)))
+         (heading (nth 1 arguments))
+         (frameList (or (visible-frame-list) (frame-list) )))
         (find-file file)
         (goto-char (point-min))
         (re-search-forward (regexp-quote heading))
         (beginning-of-line)
-        (org-show-context)))
+        (org-show-context)
+        (if frameList (select-frame-set-input-focus (car frameList)))
+))
+
 
 ;; Renamed functions of rewritten org-registry.el
 ;; Temporarily moved here to avoid confusing.
