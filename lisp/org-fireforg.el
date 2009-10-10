@@ -5,8 +5,8 @@
 ;; Copyright 2009 Andreas Burtzlaff
 ;;
 ;; Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-;; Version: 0.1alpha7
-;; Keywords: org-mode filesystem tree
+;; Version: 0.1alpha8
+;; Keywords: org-mode firefox annotations
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -152,23 +152,30 @@ Use with caution.  This could slow down things a bit."
 				'org-fireforg-registry-update t t))))
 
 ;; Warning: complex data structure ahead.
-(defun org-fireforg-registry-get-entries (file &optional registry)
+(defun org-fireforg-registry-get-entries (currentFile &optional registry)
   "Merge all Org links in FILE into the registry."
   (let (bufstr
         (result registry)
         (add-entry-for (function (lambda (link desc)
 				   (let* ((point (match-beginning 0))
 					  (onHeading (org-on-heading-p))
-					  headingPoint
-					  (headingAndTags (save-excursion (if (org-before-first-heading-p) (cons "" nil) (org-back-to-heading t) (setq headingPoint (point)) (let ((ohc (org-heading-components))) (list (nth 4 ohc) (org-get-tags-at))))))
-					  (heading (car headingAndTags))
-					  (tags (nth 1 headingAndTags))
+					  (headingPoint 0)
+					  (headingTagsAndDOI 
+                                           (save-excursion 
+                                             (if (org-before-first-heading-p) (cons "" nil) 
+                                               (org-back-to-heading t) 
+                                               (setq headingPoint (point)) 
+                                               (let ((ohc (org-heading-components)))
+                                                 (list (nth 4 ohc) (org-get-tags-at) (org-entry-get headingPoint "BIB_doi"))))))
+					  (heading (car headingTagsAndDOI))
+					  (tags (nth 1 headingTagsAndDOI))
+                                          (doi (if (nth 2 headingTagsAndDOI) (org-fireforg-bibtex-trim-string (nth 2 headingTagsAndDOI))))
 					  (contentEntry (list point desc onHeading))
-					  (headingEntry (list heading headingPoint onHeading tags (list contentEntry)))
-					  (fileEntry (list (expand-file-name file) (list headingEntry)))
+					  (headingEntry (list heading headingPoint onHeading tags (list contentEntry) doi))
+					  (fileEntry (list (expand-file-name currentFile) (list headingEntry)))
 					  (linkEntry (list link (list fileEntry)))
 					  (existingLinkEntry (assoc link result))
-					  (existingFileEntry (assoc (expand-file-name file) (nth 1 existingLinkEntry)))
+					  (existingFileEntry (assoc (expand-file-name currentFile) (nth 1 existingLinkEntry)))
 					  (existingHeadingEntry (assoc heading (nth 1 existingFileEntry))))
 
 				     (cond (existingLinkEntry
@@ -181,7 +188,7 @@ Use with caution.  This could slow down things a bit."
 		       ))
 
     (with-temp-buffer
-      (insert-file-contents file)
+      (insert-file-contents currentFile)
       ;; Turn on org-mode in order to use org-heading-components and org-get-tags-at
       ;; This can have severe impact on performance for large files, so I want to get rid of this requirement.
       (org-mode)
@@ -194,6 +201,19 @@ Use with caution.  This could slow down things a bit."
       (goto-char (point-min))
       (while (re-search-forward org-plain-link-re nil t)
         (funcall add-entry-for (match-string-no-properties 0) "" ))
+      (goto-char (point-min))
+      ;; add all DOI's in properties as urls with prefix "http://dx.doi.org/"
+      (message (concat "file outside inner function" currentFile))
+      (org-map-entries
+       (lambda () 
+         (let ((doi (org-entry-get (point) "BIB_doi")))
+           (message (concat "current file:" currentFile))
+           (if doi 
+               (funcall add-entry-for 
+                        ;; link                 
+                        (org-fireforg-doi-to-url (org-fireforg-bibtex-trim-string doi))
+                        ;; description
+                        (nth 4 (org-heading-components)))))))
       result)))
 
 ;;;###autoload
@@ -265,23 +285,25 @@ Use with caution.  This could slow down things a bit."
 					       (reduce 'concat (mapcar (lambda (fileEntry) 
 									 (let ((file (nth 0 fileEntry)))
 									   (reduce 'concat (mapcar (lambda (headingEntry) 
-												     (concat "<heading file=\"" (url-insert-entities-in-string file) "\" "
+												     (concat " <heading file=\"" (url-insert-entities-in-string file) "\" "
 													     "text=\""          (url-insert-entities-in-string (nth 0 headingEntry)) "\" "
+													     "point=\""         (number-to-string (nth 1 headingEntry)) "\" "
 													     "linkInHeading=\"" (url-insert-entities-in-string (if (nth 2 headingEntry) "t" "f")) "\" "
 													     "tags=\""          (if (nth 3 headingEntry)
                                                                                                                                     (url-insert-entities-in-string (concat ":" (mapconcat 'identity (nth 3 headingEntry) ":") ":"))
                                                                                                                                     "") "\" "
-													     ">"
+                                                                                                             (if (nth 5 headingEntry) (concat "doi=\"" (nth 5 headingEntry) "\"  ") "")
+													     ">\n  "
 													     (reduce 'concat (mapcar (lambda (contentEntry) 
-																       (concat "<contentEntry point=\"" (number-to-string (nth 0 contentEntry)) "\" "
+																       (concat "  <contentEntry point=\"" (number-to-string (nth 0 contentEntry)) "\" "
 																	       "description=\"" (url-insert-entities-in-string (nth 1 contentEntry)) "\" "
-																	       "inHeading=\"" (if (nth 2 contentEntry) "t" "f") "\"/>"))
+																	       "inHeading=\"" (if (nth 2 contentEntry) "t" "f") "\"/>\n"))
 																     (nth 4 headingEntry)) :initial-value "")
-													     "</heading>"))
+													     " </heading>"))
 												   (nth 1 fileEntry)) :initial-value "")
 									   )
 									 ) (nth 1 linkEntry)) :initial-value "")
-					       "</link>")) entries) :initial-value "")
+					       "</link>\n")) entries) :initial-value "")
 	     "</orgregistry>"))
 
     (when (file-writable-p org-fireforg-registry-file-xml)
@@ -368,6 +390,13 @@ Use with caution.  This could slow down things a bit."
     (insert bibtex)
     (goto-char (point-min))
     (bibtex-mode)))
-    
+
+(defun org-fireforg-doi-to-url (string)
+       (concat "http://dx.doi.org/" 
+(replace-regexp-in-string " " "%20"
+(replace-regexp-in-string "#" "%23"
+  (replace-regexp-in-string "\"" "%22" 
+(replace-regexp-in-string "%" "%25" string)))))
+)
 
 (provide 'org-fireforg)

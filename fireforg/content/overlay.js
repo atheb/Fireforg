@@ -3,7 +3,7 @@
 //  Copyright 2009 Andreas Burtzlaff
 
 //  Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-//  Version: 0.1alpha7
+//  Version: 0.1alpha8
 
 //  This file is not part of GNU Emacs.
 
@@ -27,7 +27,7 @@
 var fireforg = {
     // define jquery convenience functions
     jq: function (a) { return $mb( a, window.content.document); },
-
+    jQuery: $mb,
     requestid: 0,
     getPreferenceManager: function () {
         return Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
@@ -118,21 +118,50 @@ var fireforg = {
 	    fireforg.currentLink = url;
 
             if( !fireforg.registryDOM ) {
-		fireforg.setStatusBarIconNormal(0);
+		fireforg.setStatusBarIconNormal(0,0);
 	    } else {
 		
 		// get all heading for url
-		fireforg.currentLinkRegistryEntry = fireforg.registryDOM.evaluate("//link[@url=\"" + url +"\"]", fireforg.registryDOM, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-		if( fireforg.currentLinkRegistryEntry ) {
-		    fireforg.setStatusBarIconNormal( fireforg.jq( fireforg.currentLinkRegistryEntry ).children().length );
-		} else {
-		    fireforg.setStatusBarIconNormal( 0 );
-		}
-		// get tags for url, remove duplicates
+		fireforg.currentLinkRegistryEntry = fireforg.getRegistryEntryForLink( url );
+                // add all doi matches if enabled
+                if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.matchDOI") ) {
+                    var doi = fireforg.getDOIFromHtml( fireforg.jq("html").html() );
+                    if( doi ) {
+                        fireforg.currentHeadingsMatchingDOI = fireforg.getRegistryEntryForLink( fireforg.doiToURL(doi) );
+                    } else
+                      fireforg.currentHeadingsMatchingDOI = null;
+                } else
+                    fireforg.currentHeadingsMatchingDOI = null;
+                var linkMatches = 0;
+                var doiMatches = 0;
+                if( fireforg.currentLinkRegistryEntry )
+                    linkMatches = fireforg.jq( fireforg.currentLinkRegistryEntry ).children().length;
+                if( fireforg.currentHeadingsMatchingDOI ) {
+                    doiMatches = fireforg.jq( fireforg.currentHeadingsMatchingDOI ).children().length;
+                    //                    doiMatches = fireforg.currentHeadingsMatchingDOI.snapshotLength;
+                }
+		fireforg.setStatusBarIconNormal( linkMatches, doiMatches );
+		
+		// prepare to retrieve tags
 		var tags = "";
-		fireforg.jq( fireforg.currentLinkRegistryEntry ).children().each( function () { var t = fireforg.jq( this ).attr("tags"); if( t != "") { tags = tags + t }; });
-		if( tags != "" ) {
-		    var tagList = tags.replace("::",":").replace(/^:/,"").replace(/:$/,"").split(":").sort();
+                var extractTags = function () { 
+                   var t = fireforg.jq( this ).attr("tags");
+                   if( t && t != "") { tags = tags + t };
+                };
+
+                // extract tags from url matches
+		fireforg.jq( fireforg.currentLinkRegistryEntry ).children().each( extractTags );
+                // extract tags from DOI matches
+		fireforg.jq( fireforg.currentHeadingsMatchingDOI ).children().each( extractTags );
+                // if( fireforg.currentHeadingsMatchingDOI )
+                //     for( i = 0 ; i < fireforg.currentHeadingsMatchingDOI ; i++ )
+                //         extractTags( fireforg.currentHeadingsMatchingDOI.snapshotItem(i) );
+                //alert( "tags: " + tags );
+		if( tags && tags != "" ) {
+                    // remove duplicates
+                    tags = tags.replace(/:{2,}/g,":").replace(/^:/,"").replace(/:$/,"");
+                    //alert( "tags filtered: " + tags );
+                    var tagList = tags.split(":").sort();
 		    if( tagList.length > 0 ) {
 			var tagNoDup = ":" + tagList[0] + ":";
 			for( var i = 1 ; i < tagList.length ; i++ ) {
@@ -267,14 +296,18 @@ var fireforg = {
     },
     showLinkListPopup: function () {
    
-        if( fireforg.currentLinkRegistryEntry ) {
-           var popupMenu = document.getElementById('fireforg_popup_dynamic');
-                
-           fireforg.populateMenuWithAnnotations( popupMenu, fireforg.currentLinkRegistryEntry );
-           
+        if( fireforg.currentLinkRegistryEntry || fireforg.currentHeadingsMatchingDOI ) {
+            var popupMenu = document.getElementById('fireforg_popup_dynamic');
+
+            if( fireforg.currentLinkRegistryEntry && !(fireforg.currentHeadingsMatchingDOI) ) 
+                fireforg.populateMenuWithAnnotations( popupMenu, fireforg.currentLinkRegistryEntry );
+            else if( !(fireforg.currentLinkRegistryEntry && fireforg.jq( fireforg.currentLinkRegistryEntry ).children().length != 0) && fireforg.currentHeadingsMatchingDOI ) {
+                fireforg.populateMenuWithAnnotations( popupMenu, fireforg.currentHeadingsMatchingDOI );
+            }
+            else // both 
+                fireforg.populateMenuWithAnnotations( popupMenu, fireforg.removeDuplicateAnnotations( fireforg.jq( fireforg.currentLinkRegistryEntry ).append( fireforg.jq( fireforg.currentHeadingsMatchingDOI ).children() ).eq(0) ) );
             popupMenu.openPopup( document.getElementById("fireforg_spi"),"before_end",0,0,false,null);
- 
-	}
+        }
     },
     orgProtocolAcknowledgeResponse: function (id) {
 	fireforg.orgProtocolSendURL("fireforg-acknowledge://" + encodeURIComponent(id));
@@ -286,14 +319,14 @@ var fireforg = {
             heading = encodeURIComponent( heading ); }
 	fireforg.orgProtocolSendURL("fireforg-show-annotation://" + file + "/" + heading);
     },
-    setStatusBarIconNormal: function (matches) {
+    setStatusBarIconNormal: function (matches, matchesDOI) {
 	
-        if( matches == 0 ) {
+        if( matches == 0 && matchesDOI == 0 ) {
 	  document.getElementById('fireforg_spi_image').setAttribute("src","chrome://fireforg/skin/org-mode-unicorn_16.png");
           document.getElementById('fireforg_spi_label').setAttribute("value","");
 	} else {
           document.getElementById('fireforg_spi_image').setAttribute("src","chrome://fireforg/skin/org-mode-unicorn_16_highlighted.png");
-          document.getElementById('fireforg_spi_label').setAttribute("value","(" + matches + ")");
+          document.getElementById('fireforg_spi_label').setAttribute("value","(URL:" + matches + ",DOI:" + matchesDOI + ")");
 	}
     },
     setStatusBarIconError: function () {
@@ -465,10 +498,45 @@ var fireforg = {
         }
         },
 
-        /* READ PREFERENCES */
-        prefRememberTemplates: function () {
-           return fireforg.getPreferenceManager().getCharPref("extensions.fireforg.rememberTemplates").split(',');
+    /* READ PREFERENCES */
+    prefRememberTemplates: function () {
+        return fireforg.getPreferenceManager().getCharPref("extensions.fireforg.rememberTemplates").split(',');
+    },
+    getDOIFromHtml: function( html ) {
+        // Note: this presumes that "<" and ">" are encoded in the DOI identifier
+        // The DOI specification only _recommends_ "<" and ">" to be encoded inside xml documents.
+        // Let's hope everybody does so...
+        var doiRegexp = /doi ?: ?([0123456789]+\.[^ \/]+\/[^ <>\"]+)/i;
+        var doiRegexpResult = doiRegexp.exec( html );
+        if( !doiRegexpResult || doiRegexpResult.length < 1 ) {
+            return null;
+        } else {
+            return doiRegexpResult[1];
         }
-};
-window.addEventListener("load", function(e) { fireforg.onLoad(e); }, false);
+    },
+    doiToURL: function ( string ) {
+        return "http://dx.doi.org/" + string.replace(/%/g,"%25").replace(/"/g,"%22").replace(/#/g,"%23").replace(/ /g,"%20"); // "
+                                                  },
+        // removes duplicate heading entries that are children to the given root node
+        // simple unoptimized solution
+        removeDuplicateAnnotations: function  ( rootNode ) {
+            
+            var childrenArray = fireforg.jQuery.makeArray( rootNode.children() );
+                        
+            var allChildren = rootNode.children();
+            var uniqueChildren = allChildren;
+            //            var test = fireforg.jQuery.unique( fireforg.jQuery.makeArray( allChildren ) );
+            rootNode = rootNode.empty();
+            allChildren.each( function () {
+                    var currentEntry = this;
+                    uniqueChildren = uniqueChildren.filter( function () { 
+                            return !( (fireforg.jq(this).attr("file") == fireforg.jq(currentEntry).attr("file")
+                                       && (fireforg.jq(this).attr("point") == fireforg.jq(currentEntry).attr("point"))  )) }).add( currentEntry );
+
+                        });
+                return rootNode.empty().append( uniqueChildren );
+                }
+
+        };
+        window.addEventListener("load", function(e) { fireforg.onLoad(e); }, false);
 
