@@ -4,8 +4,8 @@
 
 ;; Copyright 2009 Andreas Burtzlaff
 ;;
-;; Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-;; Version: 0.1alpha8
+;; Author: Andreas Burtzlaff < andreas at burtzlaff dot de >
+;; Version: 0.1alpha9
 ;; Keywords: org-mode firefox annotations
 ;;
 ;; This file is not part of GNU Emacs.
@@ -210,8 +210,12 @@ Use with caution.  This could slow down things a bit."
            (message (concat "current file:" currentFile))
            (if doi 
                (funcall add-entry-for 
-                        ;; link                 
-                        (org-fireforg-doi-to-url (org-fireforg-bibtex-trim-string doi))
+                        ;; link
+                        ;; Due to a bug in Zotero it might happen that
+                        ;; the doi identifier is enclosed in two sets
+                        ;; of "{}" brackets.
+                        ;; Therefore the function org-fireforg-bibtex-trim-string is apply two times.
+                        (org-fireforg-doi-to-url (org-fireforg-bibtex-trim-string (org-fireforg-bibtex-trim-string doi)))
                         ;; description
                         (nth 4 (org-heading-components)))))))
       result)))

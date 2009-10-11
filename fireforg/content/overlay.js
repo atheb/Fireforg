@@ -3,7 +3,7 @@
 //  Copyright 2009 Andreas Burtzlaff
 
 //  Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-//  Version: 0.1alpha8
+//  Version: 0.1alpha9
 
 //  This file is not part of GNU Emacs.
 
@@ -49,10 +49,22 @@ var fireforg = {
 
                 var objectJQ = fireforg.jq(this);
                 var url = objectJQ.attr("href");
+                var urlMapped = fireforg.linkMapLookup( url );
+
 
                 var registryEntry = fireforg.getRegistryEntryForLink( url );
 
-                if( registryEntry ) {
+                var registryEntryMapped = null;
+                // Check whether there is a url mapped to this one
+                if( urlMapped && urlMapped != "") 
+                    registryEntryMapped = fireforg.getRegistryEntryForLink( urlMapped );
+
+                // if( registryEntryMapped ) {
+                //     // Merge
+                //     registryEntry = fireforg.jq( registryEntry ).append( fireforg.jq( registryEntryMapped ).children() ).eq(0);
+                // }
+
+                if( registryEntry || registryEntryMapped ) {
                     // add class orgNoteLink in order to be able to select the modified elements later (no css info connected with this class)
 		    //		    objectJQ.attr("class", objectJQ.attr("class") + " orgNoteLink");
                 
@@ -62,26 +74,63 @@ var fireforg = {
 
                     // generate tooltip text from entry (BUG: Newline doesn't work here. Rewrite with proper menu on mouseover.)
                     if( annotationLinkTooltip ) {
-                       var tooltipText = "";
-                       fireforg.jq( registryEntry ).children().each( function () { tooltipText = tooltipText + fireforg.jq( this ).attr("text") + "\n"; });
-		       objectJQ.attr("title", tooltipText );
+                        var tooltipText = "";
+                        if( registryEntry ) 
+                            fireforg.jq( registryEntry ).children().each( function () { tooltipText = tooltipText + fireforg.jq( this ).attr("text") + "\n"; });
+                        if( registryEntryMapped )
+                            fireforg.jq( registryEntryMapped ).children().each( function () { tooltipText = tooltipText + fireforg.jq( this ).attr("text") + "\n"; });
+                        objectJQ.attr("title", tooltipText );
 		    }
+		} 
 
-		}
+                // If no mapping entry exists and prefetchLinks is on, fetch document, extract doi and add to link map
+                if( !urlMapped && fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") ) {
+                    if( fireforg.prefetchUrlAllowed( url ) ) {
+                        fireforg.jQuery.get( url, function (htmlText) {
+                                // get doi
+                                var doi = fireforg.getDOIFromHtml( htmlText );
 
-		/*
-                var pos = fireforg.jq(this).offset();
-		//                var posRoot = $mb(window.content.document, window.content.document).offset();
+                                if( doi && doi != "" ) {
+                                    var doiURL = fireforg.doiToURL( doi );
+                                    // Add resolved URL to link map
+                                    fireforg.linkMapAddEntry( url, doiURL );
+                                    registryEntry = fireforg.getRegistryEntryForLink( doiURL );
+                                    if( registryEntry ) {
+                                        // Found an entry for the doi retrieved from the linked site.
+                                        objectJQ.attr("style", objectJQ.attr("style") + annotationLinkStyle);
+                                        // in order to be able to remove the inserted style string, it has to be stored separately
+                                        objectJQ.attr("fireforgStyle", annotationLinkStyle);
 
-		//                var annotation = document.createElement('div');
-                //annotation.textContent = "OrgTest!";
+                                        // generate tooltip text from entry (BUG: Newline doesn't work here. Rewrite with proper menu on mouseover.)
+                                        if( annotationLinkTooltip ) {
+                                            var tooltipText = "";
+                                            fireforg.jq( registryEntry ).children().each( function () { tooltipText = tooltipText + fireforg.jq( this ).attr("text") + "\n"; });
+                                            objectJQ.attr("title", tooltipText );
+                                        }
+                                    }
+                                }
+                            }, "text");
+                    }
+                    //     }
+                    // };
+                    // request.send(null);
+                }
+                
+                
+
+                /*
+                  var pos = fireforg.jq(this).offset();
+                  //                var posRoot = $mb(window.content.document, window.content.document).offset();
+
+                  //                var annotation = document.createElement('div');
+                  //annotation.textContent = "OrgTest!";
 		
-                var annotation = document.createElement('div');
-                annotation.class += "orgNote";
-		//                var img = document.createElement('img');
-                //img.src = "chrome://fireforg/skin/org-mode-unicorn_16.png";
-                //annotation.appendChild( img );
-		//                fireforg.orgProtocolSendURL("fireforg-get-annotations://" + encodeURIComponent(fireforg.requestid)  + "/" + encodeURIComponent( window.content.document.URL));
+                  var annotation = document.createElement('div');
+                  annotation.class += "orgNote";
+                  //                var img = document.createElement('img');
+                  //img.src = "chrome://fireforg/skin/org-mode-unicorn_16.png";
+                  //annotation.appendChild( img );
+                  //                fireforg.orgProtocolSendURL("fireforg-get-annotations://" + encodeURIComponent(fireforg.requestid)  + "/" + encodeURIComponent( window.content.document.URL));
                 annotation.textContent = "Org!";
                 fireforg.jq( annotation ).css({"border-style":"solid", "border-width" : "1px","background-color" : "gray"});
 
@@ -320,13 +369,16 @@ var fireforg = {
 	fireforg.orgProtocolSendURL("fireforg-show-annotation://" + file + "/" + heading);
     },
     setStatusBarIconNormal: function (matches, matchesDOI) {
-	
+        var staticString = "";
+        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") )
+            staticString = "PREFETCH";//"<FONT color=\"red\">PREFETCH</FONT>";	
+
         if( matches == 0 && matchesDOI == 0 ) {
 	  document.getElementById('fireforg_spi_image').setAttribute("src","chrome://fireforg/skin/org-mode-unicorn_16.png");
-          document.getElementById('fireforg_spi_label').setAttribute("value","");
+          document.getElementById('fireforg_spi_label').setAttribute("value", staticString );
 	} else {
           document.getElementById('fireforg_spi_image').setAttribute("src","chrome://fireforg/skin/org-mode-unicorn_16_highlighted.png");
-          document.getElementById('fireforg_spi_label').setAttribute("value","(URL:" + matches + ",DOI:" + matchesDOI + ")");
+          document.getElementById('fireforg_spi_label').setAttribute("value",staticString + "  (URL:" + matches + ",DOI:" + matchesDOI + ")");
 	}
     },
     setStatusBarIconError: function () {
@@ -502,11 +554,34 @@ var fireforg = {
     prefRememberTemplates: function () {
         return fireforg.getPreferenceManager().getCharPref("extensions.fireforg.rememberTemplates").split(',');
     },
+
+    /* LINK MAP */
+    linkMap: new Array(),
+    // Adds a mapping from url 'src' to url 'dst'.
+    // If dst is undefined it is set to "".
+    linkMapAddEntry: function ( src, dst ) {
+        if( !dst ) dst = "";
+        fireforg.linkMap[src] = dst;
+    },
+    // Looks up 'url' in the link map
+    // returns: If 'url' in link map: the associated url or ""
+    //          else: null
+    linkMapLookup: function ( url ) {
+        return fireforg.linkMap[ url ];
+    },
+    /* PREFETCHING */
+    prefetchUrlAllowed: function (url) {
+        if( url )
+          return url.match(/^http:\/\//) && !url.match(/.*\.pdf$/) && !url.match(/.*\.gif/);
+        else
+            return false;
+    },
+    /* DOI HANDLING */
     getDOIFromHtml: function( html ) {
         // Note: this presumes that "<" and ">" are encoded in the DOI identifier
         // The DOI specification only _recommends_ "<" and ">" to be encoded inside xml documents.
         // Let's hope everybody does so...
-        var doiRegexp = /doi ?: ?([0123456789]+\.[^ \/]+\/[^ <>\"]+)/i;
+        var doiRegexp = /doi ?[:\/] ?([0123456789]+\.[^ \/]+\/[^ <>\"]+)/i;
         var doiRegexpResult = doiRegexp.exec( html );
         if( !doiRegexpResult || doiRegexpResult.length < 1 ) {
             return null;

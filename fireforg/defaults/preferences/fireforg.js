@@ -7,6 +7,7 @@ pref("extensions.fireforg.annotationLinkTooltip", true);
 pref("extensions.fireforg.rememberTemplates", "");
 pref("extensions.fireforg.injectZotero",false);
 pref("extensions.fireforg.matchDOI",true);
+pref("extensions.fireforg.prefetchLinks",false);
 pref("extensions.fireforg.macWorkaround",false);
 pref("extensions.fireforg.macWorkaroundFile","~/.org-fireforg-mac.tmp");
 

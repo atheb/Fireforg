@@ -16,3 +16,4 @@
 <!ENTITY prefRememberTemplate.accesskey "R">
 <!ENTITY injectZotero.label "Inject Zotero. WARNING: No guarantee that this won't break Zotero database. Restart Firefox.">
 <!ENTITY matchDOI.label "Match sites by comparing their DOI with saved bibliography items.">
+<!ENTITY prefetchLinks.label "Prefetch links to extract DOIs.">

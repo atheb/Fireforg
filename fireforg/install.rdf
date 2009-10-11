@@ -4,7 +4,7 @@
   <Description about="urn:mozilla:install-manifest">
     <em:id>fireforg@burtzlaff.de</em:id>
     <em:name>Fireforg</em:name>
-    <em:version>0.1alpha8</em:version>
+    <em:version>0.1alpha9</em:version>
     <em:creator>Andreas Burtzlaff</em:creator>
     <em:description>Show content associated with the current URL from org-mode using org-protocol.</em:description>
     <em:optionsURL>chrome://fireforg/content/options.xul</em:optionsURL>
