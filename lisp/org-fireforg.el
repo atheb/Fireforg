@@ -385,18 +385,22 @@ Use with caution.  This could slow down things a bit."
 
 (defun org-fireforg-export-bibtex-to-new-buffer ()
   (interactive)
-  (let ((bibtex (org-fireforg-headings-to-bibtex)))
+  (let ((bibtex (org-fireforg-headings-to-bibtex))
+        ;; find nearest bibliography entry before point
+        (prevId (save-excursion 
+                  (while (and (not (org-before-first-heading-p)) (if (org-at-heading-p) (or (null (org-entry-get (point) "CUSTOM_ID")) (string= (org-entry-get (point) "CUSTOM_ID") "")) 1) (not (bobp)) ) (progn (backward-char) (org-back-to-heading t) ) )
+                  (if (or (org-before-first-heading-p) (bobp)) nil (org-entry-get (point) "CUSTOM_ID")))))
     (switch-to-buffer (generate-new-buffer "*BibTeX export*"))
     (insert bibtex)
     (goto-char (point-min))
+    (if prevId (progn (re-search-forward (regexp-quote prevId)) (beginning-of-line)))
     (bibtex-mode)))
 
 (defun org-fireforg-doi-to-url (string)
        (concat "http://dx.doi.org/" 
-(replace-regexp-in-string " " "%20"
-(replace-regexp-in-string "#" "%23"
-  (replace-regexp-in-string "\"" "%22" 
-(replace-regexp-in-string "%" "%25" string)))))
-)
+ (replace-regexp-in-string " " "%20"
+ (replace-regexp-in-string "#" "%23"
+ (replace-regexp-in-string "\"" "%22" 
+ (replace-regexp-in-string "%" "%25" string))))))
 
 (provide 'org-fireforg)
