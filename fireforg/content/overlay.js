@@ -3,7 +3,7 @@
 //  Copyright 2009 Andreas Burtzlaff
 
 //  Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-//  Version: 0.1alpha9
+//  Version: 0.1alpha10
 
 //  This file is not part of GNU Emacs.
 
@@ -166,9 +166,10 @@ var fireforg = {
 	    var url = window.content.document.URL;
 	    fireforg.currentLink = url;
 
-            if( !fireforg.registryDOM ) {
-		fireforg.setStatusBarIconNormal(0,0);
-	    } else {
+            fireforg.currentLinkRegistryEntry = null;
+            fireforg.currentHeadingsMatchingDOI = null;
+
+            if( fireforg.registryDOM ) {
 		
 		// get all heading for url
 		fireforg.currentLinkRegistryEntry = fireforg.getRegistryEntryForLink( url );
@@ -181,16 +182,7 @@ var fireforg = {
                       fireforg.currentHeadingsMatchingDOI = null;
                 } else
                     fireforg.currentHeadingsMatchingDOI = null;
-                var linkMatches = 0;
-                var doiMatches = 0;
-                if( fireforg.currentLinkRegistryEntry )
-                    linkMatches = fireforg.jq( fireforg.currentLinkRegistryEntry ).children().length;
-                if( fireforg.currentHeadingsMatchingDOI ) {
-                    doiMatches = fireforg.jq( fireforg.currentHeadingsMatchingDOI ).children().length;
-                    //                    doiMatches = fireforg.currentHeadingsMatchingDOI.snapshotLength;
-                }
-		fireforg.setStatusBarIconNormal( linkMatches, doiMatches );
-		
+                
 		// prepare to retrieve tags
 		var tags = "";
                 var extractTags = function () { 
@@ -225,6 +217,7 @@ var fireforg = {
 		    fireforg.setStatusBarTags("");
 		}
 	    }
+            fireforg.updateStatusBarIcon();
 
 	    } else {
 		fireforg.setStatusBarIconError();
@@ -327,6 +320,25 @@ var fireforg = {
 	while(menu.hasChildNodes()){
 	    menu.removeChild(menu.lastChild);}
 
+        // add toggle link prefetching
+        var tmpItem = document.createElement("menuitem");
+        var linkPrefetchingLabel = "";
+        var linkPrefetchNewState = "false";
+        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") ) {
+            linkPrefetchingLabel = "Disable link prefetching";
+            linkPrefetchNewState = "false";
+        } else {
+            linkPrefetchingLabel = "Enable link prefetching";
+            linkPrefetchNewState = "true";
+        }
+        tmpItem.setAttribute("class","fireforg-popupmenu");
+        tmpItem.setAttribute("label", linkPrefetchingLabel );
+        tmpItem.setAttribute("onclick","fireforg.getPreferenceManager().setBoolPref(\"extensions.fireforg.prefetchLinks\", " + linkPrefetchNewState + ");fireforg.updateStatusBarIcon();");
+        menu.appendChild( tmpItem );
+ 
+        tmpItem = document.createElement("menuseparator");
+        menu.appendChild( tmpItem );
+
         // add store link entry
         var tmpItem = document.createElement("menuitem");
         tmpItem.setAttribute("class","fireforg-popupmenu");
@@ -367,6 +379,17 @@ var fireforg = {
 	    file = encodeURIComponent( file );
             heading = encodeURIComponent( heading ); }
 	fireforg.orgProtocolSendURL("fireforg-show-annotation://" + file + "/" + heading);
+    },
+    updateStatusBarIcon: function () {
+        var linkMatches = 0;
+        var doiMatches = 0;
+        if( fireforg.currentLinkRegistryEntry )
+            linkMatches = fireforg.jq( fireforg.currentLinkRegistryEntry ).children().length;
+        if( fireforg.currentHeadingsMatchingDOI ) {
+            doiMatches = fireforg.jq( fireforg.currentHeadingsMatchingDOI ).children().length;
+            //                    doiMatches = fireforg.currentHeadingsMatchingDOI.snapshotLength;
+        }
+        fireforg.setStatusBarIconNormal( linkMatches, doiMatches );
     },
     setStatusBarIconNormal: function (matches, matchesDOI) {
         var staticString = "";
