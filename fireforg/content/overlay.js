@@ -3,7 +3,7 @@
 //  Copyright 2009 Andreas Burtzlaff
 
 //  Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-//  Version: 0.1alpha10
+//  Version: 0.1alpha11
 
 //  This file is not part of GNU Emacs.
 
@@ -43,21 +43,21 @@ var fireforg = {
         var annotationLinkTooltip = fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.annotationLinkTooltip");
 
         var linksJQ = fireforg.jq("a");
-        
-        linksJQ.each( function () {
 
+
+        linksJQ.each( function () {
 
                 var objectJQ = fireforg.jq(this);
                 var url = objectJQ.attr("href");
                 var urlMapped = fireforg.linkMapLookup( url );
 
 
-                var registryEntry = fireforg.getRegistryEntryForLink( url );
+                var registryEntry = fireforg.getRegistryEntryFromFileForUrl( url );
 
                 var registryEntryMapped = null;
                 // Check whether there is a url mapped to this one
                 if( urlMapped && urlMapped != "") 
-                    registryEntryMapped = fireforg.getRegistryEntryForLink( urlMapped );
+                    registryEntryMapped = fireforg.getRegistryEntryFromFileForUrl( urlMapped );
 
                 // if( registryEntryMapped ) {
                 //     // Merge
@@ -84,7 +84,7 @@ var fireforg = {
 		} 
 
                 // If no mapping entry exists and prefetchLinks is on, fetch document, extract doi and add to link map
-                if( !urlMapped && fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") ) {
+                if( urlMapped == null && fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") ) {
                     if( fireforg.prefetchUrlAllowed( url ) ) {
                         fireforg.jQuery.get( url, function (htmlText) {
                                 // get doi
@@ -94,7 +94,7 @@ var fireforg = {
                                     var doiURL = fireforg.doiToURL( doi );
                                     // Add resolved URL to link map
                                     fireforg.linkMapAddEntry( url, doiURL );
-                                    registryEntry = fireforg.getRegistryEntryForLink( doiURL );
+                                    registryEntry = fireforg.getRegistryEntryFromFileForUrl( doiURL );
                                     if( registryEntry ) {
                                         // Found an entry for the doi retrieved from the linked site.
                                         objectJQ.attr("style", objectJQ.attr("style") + annotationLinkStyle);
@@ -108,6 +108,9 @@ var fireforg = {
                                             objectJQ.attr("title", tooltipText );
                                         }
                                     }
+                                } else {
+                                    // Add empty entry
+                                    fireforg.linkMapAddEntry( url, "");
                                 }
                             }, "text");
                     }
@@ -142,7 +145,6 @@ var fireforg = {
                 //$mb( annotation, window.content.document ).css( { "position" : "absolute", "left" : "-10px", "top" : "-10px" ,"z-index" : "3"});
 		*/
 	    });
-
     },
     onLoadSite: function () {
 
@@ -172,12 +174,12 @@ var fireforg = {
             if( fireforg.registryDOM ) {
 		
 		// get all heading for url
-		fireforg.currentLinkRegistryEntry = fireforg.getRegistryEntryForLink( url );
+		fireforg.currentLinkRegistryEntry = fireforg.getRegistryEntryFromFileForUrl( url );
                 // add all doi matches if enabled
                 if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.matchDOI") ) {
                     var doi = fireforg.getDOIFromHtml( fireforg.jq("html").html() );
                     if( doi ) {
-                        fireforg.currentHeadingsMatchingDOI = fireforg.getRegistryEntryForLink( fireforg.doiToURL(doi) );
+                        fireforg.currentHeadingsMatchingDOI = fireforg.getRegistryEntryFromFileForUrl( fireforg.doiToURL(doi) );
                     } else
                       fireforg.currentHeadingsMatchingDOI = null;
                 } else
@@ -258,14 +260,7 @@ var fireforg = {
 	}
 
     },
-    getRegistryEntryForLink: function (url) {
-	try {
-	    // the xpath query may be invalid for certain url's
-	    return fireforg.registryDOM.evaluate("//link[@url=\"" + url +"\"]", fireforg.registryDOM, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-	} catch (e) {
-	    return null;
-	}
-    },
+    
     onLoad: function() {
 	
         // init variables
@@ -469,7 +464,7 @@ var fireforg = {
         if( gContextMenu.onLink ) {
 	    var url = gContextMenu.link;
 
-	    var registryEntry = fireforg.getRegistryEntryForLink( url );
+	    var registryEntry = fireforg.getEntriesForUrl( url );
 
             fireforg.populateMenuWithAnnotations( contextMenuEntry, registryEntry );
              
@@ -577,13 +572,78 @@ var fireforg = {
     prefRememberTemplates: function () {
         return fireforg.getPreferenceManager().getCharPref("extensions.fireforg.rememberTemplates").split(',');
     },
+    /* ACCESS REGISTRY */
+    /* Retrieves all entries for url from the registry file.*/
+    getRegistryEntryFromFileForUrl: function (url) {
+	try {
+	    // the xpath query may be invalid for certain url's
+	    return fireforg.registryDOM.evaluate("//link[@url=\"" + url +"\"]", fireforg.registryDOM, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+	} catch (e) {
+	    return null;
+	}
+    },
+    /* Retrieves all entries for given url from the registry using the
+     * cached mappings and the DOI if enabled.  
+     *
+     * Side effect: fireforg.currentLinkRegistryEntry and
+     *              fireforg.currentHeadingsMatchingDOI will be filled.
+     *
+     * It will _not_ retrieve pages if the given url is not the
+     * currently viewed one! */
+    getEntriesForUrl: function (url) {
+        var urlMapped = fireforg.linkMapLookup( url );
+
+        // get all headings for url
+        fireforg.currentLinkRegistryEntry = fireforg.getRegistryEntryFromFileForUrl( url );
+
+        var registryEntryMapped = null;
+        // Check whether there is a url mapped to this one
+        if( urlMapped && urlMapped != "") {
+            registryEntryMapped = fireforg.getRegistryEntryFromFileForUrl( urlMapped );
+        } else if( !urlMapped && fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.matchDOI") ) {
+            var doi = null;
+            // See how the site's content can be accessed.
+            // If it is the currently viewed url, simply use the content of the <html> tag to search through
+            if( window.content.document.URL == url ) {
+ doi = fireforg.getDOIFromHtml( fireforg.jq("html").html() );
+            } 
+            // If it isn't the currently viewed URL the content has to
+            // be retrieved. But we won't do that here because of its
+            // asynchronous nature. New links in pages are retrieved
+            // and handled in fireforg.lookupAndModifyLinks.
+
+            if( doi ) {
+                registryEntryMapped = fireforg.getRegistryEntryForLink( fireforg.doiToURL(doi) );
+
+                // add DOI URL to map
+                fireforg.linkMapAddEntry( url, fireforg.doiToURL( doi ) );
+            } 
+        } 
+
+        fireforg.currentHeadingsMatchingDOI = registryEntryMapped;
+
+        if( fireforg.currentLinkRegistryEntry || registryEntryMapped ) {
+
+            if( fireforg.currentLinkRegistryEntry && !(registryEntryMapped) ) 
+                return fireforg.currentLinkRegistryEntry;
+            else if( !(fireforg.currentLinkRegistryEntry && fireforg.jq( fireforg.currentLinkRegistryEntry ).children().length != 0) && registryEntryMapped ) {
+                return registryEntryMapped;
+            }
+            else // both 
+                return fireforg.removeDuplicateAnnotations( fireforg.jq( fireforg.currentLinkRegistryEntry ).append( fireforg.jq( registryEntryMapped ).children() ).eq(0) ) ;
+        } else
+            return null;
+
+                
+    },
 
     /* LINK MAP */
     linkMap: new Array(),
     // Adds a mapping from url 'src' to url 'dst'.
     // If dst is undefined it is set to "".
     linkMapAddEntry: function ( src, dst ) {
-        if( !dst ) dst = "";
+        if( !dst )
+            dst = "";
         fireforg.linkMap[src] = dst;
     },
     // Looks up 'url' in the link map
@@ -595,7 +655,7 @@ var fireforg = {
     /* PREFETCHING */
     prefetchUrlAllowed: function (url) {
         if( url )
-          return url.match(/^http:\/\//) && !url.match(/.*\.pdf$/) && !url.match(/.*\.gif/);
+            return url.match(/^http:\/\//i) && !url.match(/.*\.pdf$/i) && !url.match(/.*\.gif$/i) && !url.match(/.*\.png$/i) && !url.match(/.*\.swf$/i);
         else
             return false;
     },
@@ -614,7 +674,7 @@ var fireforg = {
     },
     doiToURL: function ( string ) {
         return "http://dx.doi.org/" + string.replace(/%/g,"%25").replace(/"/g,"%22").replace(/#/g,"%23").replace(/ /g,"%20"); // "
-                                                  },
+                                                                         },
         // removes duplicate heading entries that are children to the given root node
         // simple unoptimized solution
         removeDuplicateAnnotations: function  ( rootNode ) {
