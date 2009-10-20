@@ -26,28 +26,34 @@
       <menuitem label="store-link" onclick="fireforg.orgProtocolStoreLink()"/>
       <!-- <menuitem label="remember" onclick="fireforg.orgProtocolRemember()"/> -->
     </menupopup>
+    <!-- The "menu" entry is generated dynamically in fireforg.generatePopupMenu -->
+    <menupopup id="fireforg_popup_all_tabs_dynamic" class="fireforg-popupmenu">
+    </menupopup>
   </popupset>
 
   <!-- Add the entry "Fireforg" to the context menu -->
 
   <popup id="contentAreaContextMenu" insertafter="context-searchselect">
-   <menuseparator id="menuseperator" />
-      <menu id="fireforg_ctx_menu_fireforg" label="&fireforg-contextmenu.label;" insertafter="menuseparator">
-<!--		class="menu-iconic" -->
-<!--		image="chrome://autocontext/skin/ac-status.png" -->
-	<menupopup  id="fireforg_ctx_menu_fireforg_popup" onpopupshowing="fireforg.contextMenuItemShowing(event);">
-           <menuitem label="Test" />
-        </menupopup>
-      </menu>
-      <menu id="fireforg_ctx_menu_fireforg_actions" label="&fireforg-contextmenu-actions.label;" insertafter="menuseparator">
-<!--		class="menu-iconic" -->
-<!--		image="chrome://autocontext/skin/ac-status.png" -->
-	<menupopup  id="fireforg_ctx_menu_fireforg_popup_actions" onpopupshowing="fireforg.contextMenuActionsItemShowing(event);">
-           <menuitem label="Test" />
-        </menupopup>
-      </menu>
+    <menuseparator id="menuseparator" />
+    <menu id="fireforg_ctx_menu_fireforg" label="&fireforg-contextmenu.label;" insertafter="menuseparator">
+      <!--		class="menu-iconic" -->
+      <!--		image="chrome://autocontext/skin/ac-status.png" -->
+      <menupopup  id="fireforg_ctx_menu_fireforg_popup" onpopupshowing="fireforg.contextMenuItemShowing(event);">
+        <menuitem label="Test" />
+      </menupopup>
+    </menu>
+    <menu id="fireforg_ctx_menu_fireforg_actions" label="&fireforg-contextmenu-actions.label;" insertafter="menuseparator">
+      <!--		class="menu-iconic" -->
+      <!--		image="chrome://autocontext/skin/ac-status.png" -->
+      <menupopup  id="fireforg_ctx_menu_fireforg_popup_actions" onpopupshowing="fireforg.contextMenuActionsItemShowing(event);">
+        <menuitem label="Test" />
+      </menupopup>
+    </menu>
   </popup>
 
+  <!-- <menupopup anonid="tabAreaContextMenu" insertafter="context-searchselect"> -->
+  <!--   <menuseparator id="menuseparator" /> -->
+  <!-- </menupopup> -->
 </overlay>
 
 

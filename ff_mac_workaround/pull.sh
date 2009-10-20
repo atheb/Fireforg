@@ -7,14 +7,19 @@ TMP_FILE=~/.org-fireforg-mac.tmp
 while [ 0==0 ]
 do
 
-COM=$(cat ${TMP_FILE})
+# Read the first line
+COM=$(head -1 ${TMP_FILE})
 
 if [ "${COM}" != "" ]; then
 # echo "Calling ${EMACS_CLIENT} with argument: ${COM}"
 # read 
 ${EMACS_CLIENT} "${COM}"
-echo "" > ${TMP_FILE}
+
+# Remove the first line
+perl -pi -e '$_ = "" if ($. == 1);' ${TMP_FILE}
+
+else
+ sleep 1s
 fi
 
-sleep 1s
 done

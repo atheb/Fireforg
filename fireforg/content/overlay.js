@@ -3,7 +3,7 @@
 //  Copyright 2009 Andreas Burtzlaff
 
 //  Author: Andreas Burtzlaff < andreas at burtz[REMOVE]laff dot de >
-//  Version: 0.1alpha11
+//  Version: 0.1alpha12
 
 //  This file is not part of GNU Emacs.
 
@@ -289,6 +289,16 @@ var fireforg = {
 	*/
 	// document.getElementById('urlbar').onchange = fireforg.onUrlSwitch;
 
+        // add own contentAreaClick to window.
+        // This is the function the tabbrowser calls whenever a click in the tab bar occurs.
+        
+        // if ("contentAreaClick" in window) {
+        //     fireforg.__contentAreaClick = window.contentAreaClick;
+        //     window.contentAreaClick = fireforg.contentAreaClick;
+        // }
+
+
+
 	this.initialized = true;
 	this.strings = document.getElementById("fireforg-strings");
 
@@ -303,15 +313,15 @@ var fireforg = {
         else {
 	    var menu = document.getElementById('fireforg_popup_menu');
             var templateList = fireforg.prefRememberTemplates();
-            fireforg.generatePopupMenu( menu, templateList );
+            fireforg.generatePopupMenuStatusBar( menu, templateList );
             menu.openPopup( document.getElementById("fireforg_spi"),"before_end",0,0,false,null);
 	}           
     },
-    generatePopupMenu: function ( menu, rememberTemplateList, linkToStoreO, titleToStoreO ) {
+    generatePopupMenuStatusBar: function( menu, rememberTemplateList, linkToStoreO, titleToStoreO ) {
         if( !linkToStoreO ) linkToStoreO = "";
         if( !titleToStoreO ) titleToStoreO = linkToStoreO;
 
-      	// remove all children
+   	// remove all children
 	while(menu.hasChildNodes()){
 	    menu.removeChild(menu.lastChild);}
 
@@ -319,6 +329,7 @@ var fireforg = {
         var tmpItem = document.createElement("menuitem");
         var linkPrefetchingLabel = "";
         var linkPrefetchNewState = "false";
+
         if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") ) {
             linkPrefetchingLabel = "Disable link prefetching";
             linkPrefetchNewState = "false";
@@ -334,6 +345,46 @@ var fireforg = {
         tmpItem = document.createElement("menuseparator");
         menu.appendChild( tmpItem );
 
+        // Added "All tabs" entry
+        var tmpMenu = document.createElement("menu");
+        tmpMenu.setAttribute("class","fireforg-menu");
+        tmpMenu.setAttribute("label", "All tabs" );
+        //        tmpMenu.setAttribute("onclick","fireforg.getPreferenceManager().setBoolPref(\"extensions.fireforg.prefetchLinks\", " + linkPrefetchNewState + ");fireforg.updateStatusBarIcon();");
+        menu.appendChild( tmpMenu );        
+        var tmpMenuPopup = document.createElement("menupopup");
+        tmpMenu.appendChild( tmpMenuPopup );
+        { 
+            // Fill the "All tabs" menu
+            fireforg.appendRememberEntriesToMenu( 
+                                             tmpMenuPopup, 
+                                             rememberTemplateList, 
+                                             function( template ) { return  "remember (" + template + ")" } ,
+                                             function( templateString ) { return "fireforg.allTabsRemember(\"" + templateString + "\",\"" + linkToStoreO + "\",\"" + titleToStoreO + "\")"; } );
+            tmpMenuPopup.appendChild( tmpItem );
+        }
+ 
+
+        tmpItem = document.createElement("menuseparator");
+        menu.appendChild( tmpItem );
+
+
+        fireforg.generatePopupMenu( menu, rememberTemplateList, linkToStoreO, titleToStoreO );
+    },
+    generatePopupMenuContext: function ( menu, rememberTemplateList, linkToStoreO, titleToStoreO ) {
+        if( !linkToStoreO ) linkToStoreO = "";
+        if( !titleToStoreO ) titleToStoreO = linkToStoreO;
+        
+   	// remove all children
+	while(menu.hasChildNodes()){
+	    menu.removeChild(menu.lastChild);}
+
+        fireforg.generatePopupMenu( menu, rememberTemplateList, linkToStoreO, titleToStoreO );
+    },
+
+    generatePopupMenu: function ( menu, rememberTemplateList, linkToStoreO, titleToStoreO ) {
+        
+        var tmpItem = document.createElement("menuitem");
+        
         // add store link entry
         var tmpItem = document.createElement("menuitem");
         tmpItem.setAttribute("class","fireforg-popupmenu");
@@ -341,14 +392,27 @@ var fireforg = {
         tmpItem.setAttribute("onclick","fireforg.orgProtocolStoreLink(\"" + linkToStoreO + "\",\"" + titleToStoreO + "\")");
         menu.appendChild( tmpItem );
 
-        rememberTemplateList.forEach( function( element ) {
-        var tmpItem = document.createElement("menuitem");
-        tmpItem.setAttribute("class","fireforg-popupmenu");
-        tmpItem.setAttribute("label", "remember (" + element + ")" );
-        tmpItem.setAttribute("onclick","fireforg.orgProtocolRemember(\"" + element + "\",\"" + linkToStoreO + "\",\"" + titleToStoreO + "\")");
-        menu.appendChild( tmpItem );
-            })
+        fireforg.appendRememberEntriesToMenu( 
+                                             menu, 
+                                             rememberTemplateList, 
+                                             function( template ) { return  "remember (" + template + ")" } ,
+                                             function( templateString ) { return "fireforg.orgProtocolRemember(\"" + templateString + "\",\"" + linkToStoreO + "\",\"" + titleToStoreO + "\")"; } );
         
+        
+    },
+    // labelFunction: function ( templateString )
+    // rteturn the menu entries label
+    // jsCodeFunction: function ( templateString )
+    // returns the string that is evaluated if the menu entry is clicked
+    // 
+    appendRememberEntriesToMenu: function( menu, rememberTemplateList, labelFunction, jsCodeFunction ) {
+        rememberTemplateList.forEach( function( element ) {
+                var tmpItem = document.createElement("menuitem");
+                tmpItem.setAttribute("class","fireforg-popupmenu");
+                tmpItem.setAttribute("label", labelFunction( element ) );
+                tmpItem.setAttribute("onclick", jsCodeFunction( element ) );
+                menu.appendChild( tmpItem );
+            });
     },
     showLinkListPopup: function () {
    
@@ -392,11 +456,11 @@ var fireforg = {
             staticString = "PREFETCH";//"<FONT color=\"red\">PREFETCH</FONT>";	
 
         if( matches == 0 && matchesDOI == 0 ) {
-	  document.getElementById('fireforg_spi_image').setAttribute("src","chrome://fireforg/skin/org-mode-unicorn_16.png");
-          document.getElementById('fireforg_spi_label').setAttribute("value", staticString );
+            document.getElementById('fireforg_spi_image').setAttribute("src","chrome://fireforg/skin/org-mode-unicorn_16.png");
+            document.getElementById('fireforg_spi_label').setAttribute("value", staticString );
 	} else {
-          document.getElementById('fireforg_spi_image').setAttribute("src","chrome://fireforg/skin/org-mode-unicorn_16_highlighted.png");
-          document.getElementById('fireforg_spi_label').setAttribute("value",staticString + "  (URL:" + matches + ",DOI:" + matchesDOI + ")");
+            document.getElementById('fireforg_spi_image').setAttribute("src","chrome://fireforg/skin/org-mode-unicorn_16_highlighted.png");
+            document.getElementById('fireforg_spi_label').setAttribute("value",staticString + "  (URL:" + matches + ",DOI:" + matchesDOI + ")");
 	}
     },
     setStatusBarIconError: function () {
@@ -409,6 +473,18 @@ var fireforg = {
     },
     setStatusBarTags: function (tagString) {
         document.getElementById('fireforg_spi_label_tags').setAttribute("value",tagString);
+    },
+    allTabsRemember: function ( template ) {
+        for( i = 0 ; i < gBrowser.mTabs.length ; i++ ) {
+            var tab = gBrowser.mTabs[i].linkedBrowser;
+            var title = tab.contentWindow.document.title;
+            var url = tab.contentWindow.location.href;
+ //            alert("Tab with title: " + title + " and URL:\n" + url );           
+            fireforg.orgProtocolRemember( 
+            template,
+            url,
+            title);
+        }
     },
     orgProtocolStoreLink: function ( link, title) {
         if( !link || link === "" )
@@ -430,17 +506,17 @@ var fireforg = {
         if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.macWorkaround") ) { // Workaround
             var tmpFileName = fireforg.getPreferenceManager().getCharPref("extensions.fireforg.macWorkaroundFile");
             var file = Components.classes["@mozilla.org/file/local;1"]
-                .createInstance(Components.interfaces.nsILocalFile);
+            .createInstance(Components.interfaces.nsILocalFile);
             file.initWithPath( tmpFileName );
             if(file.exists() == false) {
                 file.create( Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 420);
             }
 
             var stream = Components.classes["@mozilla.org/network/file-output-stream;1"]
-                .createInstance(Components.interfaces.nsIFileOutputStream);
+            .createInstance(Components.interfaces.nsIFileOutputStream);
 
-            stream.init(file, 0x02 | 0x08 | 0x20, 0666, 0);
-            var finalString = "org-protocol://" + url;
+            stream.init(file, 0x02 | 0x08 | 0x10, 0666, 0);
+            var finalString = "org-protocol://" + url + "\n";
             stream.write( finalString, finalString.length);
             stream.close();
 
@@ -482,10 +558,13 @@ var fireforg = {
         if( gContextMenu.onLink ) {
 	    var url = gContextMenu.link;
 
-            fireforg.generatePopupMenu( contextActionsMenuEntry, fireforg.prefRememberTemplates(), url);             
+            fireforg.generatePopupMenuContext( contextActionsMenuEntry, fireforg.prefRememberTemplates(), url);             
 	} 	
     },
-
+    // // Context menu for tabs
+    // contentAreaClick: function ( evt, noidea ) {
+      
+    // },
 
     populateMenuWithAnnotations: function (menu, registryEntry ) {
 	// remove all children

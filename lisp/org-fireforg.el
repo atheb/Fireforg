@@ -5,7 +5,7 @@
 ;; Copyright 2009 Andreas Burtzlaff
 ;;
 ;; Author: Andreas Burtzlaff < andreas at burtzlaff dot de >
-;; Version: 0.1alpha11
+;; Version: 0.1alpha12
 ;; Keywords: org-mode firefox annotations
 ;;
 ;; This file is not part of GNU Emacs.
