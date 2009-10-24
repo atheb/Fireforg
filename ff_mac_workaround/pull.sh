@@ -8,7 +8,7 @@ while [ 0==0 ]
 do
 
 # Read the first line
-COM=$(head -1 ${TMP_FILE})
+COM=$(head -n 1 ${TMP_FILE})
 
 if [ "${COM}" != "" ]; then
 # echo "Calling ${EMACS_CLIENT} with argument: ${COM}"
