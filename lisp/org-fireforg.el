@@ -5,7 +5,7 @@
 ;; Copyright 2009 Andreas Burtzlaff
 ;;
 ;; Author: Andreas Burtzlaff < andreas at burtzlaff dot de >
-;; Version: 0.1alpha12
+;; Version: 0.1alpha13
 ;; Keywords: org-mode firefox annotations
 ;;
 ;; This file is not part of GNU Emacs.
@@ -122,7 +122,7 @@ create a new registry from scratch and eval it. If the registry
 exists, eval `org-fireforg-registry-file' and make it the new value for
 `org-fireforg-registry-alist'."
   (interactive "P")
-  (message (concat "org-fireforg-registry-initialize: org-agenda-files = " (with-output-to-string (prin1 org-agenda-files)))) ;; DEBUG
+  ;;(message (concat "org-fireforg-registry-initialize: org-agenda-files = " (with-output-to-string (prin1 org-agenda-files)))) ;; DEBUG
   (cond ((or from-scratch (not (file-exists-p org-fireforg-registry-file)))
 	  ;; create a new registry
 	  (setq org-fireforg-registry-alist nil)
@@ -203,11 +203,10 @@ Use with caution.  This could slow down things a bit."
         (funcall add-entry-for (match-string-no-properties 0) "" ))
       (goto-char (point-min))
       ;; add all DOI's in properties as urls with prefix "http://dx.doi.org/"
-      (message (concat "file outside inner function" currentFile))
       (org-map-entries
        (lambda () 
          (let ((doi (org-entry-get (point) "BIB_doi")))
-           (message (concat "current file:" currentFile))
+           ;;(message (concat "current file:" currentFile))
            (if doi 
                (funcall add-entry-for 
                         ;; link
@@ -234,20 +233,25 @@ Use with caution.  This could slow down things a bit."
 	   (cond ((member from-file (mapcar 'expand-file-name (org-fireforg-registry-file-set)))
 		  (let ((registryFiltered (org-fireforg-registry-filter-where-filename-not from-file org-fireforg-registry-alist)))
 		    (setq org-fireforg-registry-alist (org-fireforg-registry-get-entries from-file registryFiltered))
-		  (org-fireforg-registry-create org-fireforg-registry-alist)
-                  (org-fireforg-registry-create-xml org-fireforg-registry-alist)
-		  ;;(message (format "Org registry updated for %s. Found %i entries. Registry contains %i entries." (file-name-nondirectory from-file) (length new-entries) (length org-fireforg-registry-alist)))
-                  ))
-		 (t (message (format "Current file %s is not in org-fireforg-registry-file-set." from-file))))))))
+                    (org-fireforg-registry-create org-fireforg-registry-alist)
+                    (org-fireforg-registry-create-xml org-fireforg-registry-alist)
+                    ;;(message (format "Org registry updated for %s. Found %i entries. Registry contains %i entries." (file-name-nondirectory from-file) (length new-entries) (length org-fireforg-registry-alist)))
+                    ))
+                 ;;		 (t (message (format "Current file %s is not in org-fireforg-registry-file-set." from-file))) 
+                 )))))
 
 ;; requires expanded filename as argument
 (defun org-fireforg-registry-filter-where-filename-not (filename registry)
   (cond ((not registry) nil)
         ((nlistp registry) (error "org-fireforg-registry-filter-where-filename-not: argument registry is not a list"))
-        (t 
-          (let* ((head (car registry))
-                 (fileEntries (nth 1 head)))
-         (cons (list (car head) (org-fireforg-registry-filter (lambda (entry) (not (string= (expand-file-name (car entry)) filename))) fileEntries)) (org-fireforg-registry-filter-where-filename-not filename (cdr registry)))))))
+        (t
+         (mapcar (lambda (linkEntry) 
+                   (list (car linkEntry) 
+                         (org-fireforg-registry-filter 
+                          (lambda (fileEntry) 
+                            (not (string= (expand-file-name (car fileEntry)) filename)))
+                          (nth 1 linkEntry))))
+                 registry))))
 
 
 (defun org-fireforg-registry-create (entries)
@@ -320,10 +324,8 @@ Use with caution.  This could slow down things a bit."
   (delq nil
 	  (mapcar (lambda (x) (and (funcall condp x) x)) lst)))
 
-
-
 (defun org-fireforg-receive-bibtex-entry (data)
-  (message "Received bibtex string") ;; DEBUG
+  ;;(message "Received bibtex string") ;; DEBUG
   (let* ((arguments (org-protocol-split-data data t))
          (bibtex (nth 0 arguments))
          (bibtexParsed (org-fireforg-parse-bibtex-entry-wrapper bibtex)))
@@ -334,7 +336,7 @@ Use with caution.  This could slow down things a bit."
                     ((eq org-fireforg-received-bibtex-format 'headingWithBibTeXContent)
                      (concat (org-fireforg-generate-heading bibtexParsed) "\n" bibtex "\n"))
                     ((not org-fireforg-received-bibtex-format) bibtex)))
-    (message "Saved entry header") 
+    (message "Saved BibTeX entry to kill ring.") 
     )
   nil)
 
