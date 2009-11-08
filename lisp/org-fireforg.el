@@ -37,6 +37,7 @@
 ;;      Sends a BibTeX entry that is formatted according to `org-fireforg-received-bibtex-format'
 ;;      and put into the kill ring
 
+
 (require 'org)
 
 (require 'org-protocol)
@@ -52,6 +53,12 @@
              '("Fireforg get bibtex entry: fireforg-bibtex-entry://<bibtex entry (encoded)>"
               :protocol "fireforg-bibtex-entry"
               :function org-fireforg-receive-bibtex-entry))
+
+(add-to-list 'org-protocol-httpd-protocol-alist
+             '("get-org-subtree" 
+               :protocol "get-org-subtree" 
+               :mime "xml"
+               :function org-fireforg-get-org-subtree))
 
 (defgroup org-fireforg nil
   "Options for the Fireforg extension of Org-mode."
@@ -70,6 +77,24 @@
           (const :tag "Create heading with properties and BibTeX entry as content" headingWithPropsAndBibTeXContent)
           (const :tag "Create heading with BibTeX entry as content" headingWithBibTeXContent)))
 
+(defcustom org-fireforg-locations nil
+  "A list of locations for bookmark synchronization.
+A location is a heading in an org file, where bookmarks are to be
+stored. The elements of this list are 2-element lists. For each
+entry the first element is a string containing the name of the
+location.  The second entry is a string, that has the same format
+as the first part in an org link.
+
+Example: To reference the heading Bookmarks in the file
+~/org/bookmarks.org use:
+(\"bookmark_location\" \"~/org/bookmarks.org::Bookmarks\") 
+";;"
+:type '(repeat
+        :tag "enabled"
+        (list :value ("" "")
+              (string :tag "Name")	
+              (string :tag "Reference"))))
+
 ;; Searches for header in given file
 (defun org-fireforg-show-annotation (data)
   (let* ((arguments (org-protocol-split-data data t))
@@ -84,6 +109,47 @@
         (if frameList (select-frame-set-input-focus (car frameList)))
 ))
 
+(defun org-fireforg-get-org-subtree (data)
+(message "org-fireforg-get-org-subtree with arguments: %s" data)
+(save-current-buffer
+  (save-excursion
+    (let* ((arguments (org-protocol-split-data data t))
+           (location-name (nth 0 arguments)))
+      (org-fireforg-do-at-location 
+       location-name 
+       (lambda ()
+         (org-fireforg-subtree-to-xml)))))))
+
+(defun org-fireforg-subtree-to-xml ()
+  (let (result)
+    (beginning-of-line 2)
+    (narrow-to-region (point) (save-excursion (org-end-of-subtree)))
+    (setq result 
+          (mapconcat 
+           'identity 
+           (org-map-entries 
+            (lambda ()
+              (let ((heading-components (org-heading-components)))
+                (format "<heading title=\"%s\"/>" (nth 4 heading-components) ))
+              )) ""))
+    (widen)
+    result))
+
+(defun org-fireforg-do-at-location (location-name func)
+  (let ((location-entry (assoc location-name org-fireforg-locations))
+        (currentBuffer (current-buffer))
+        return-value)
+    (when (null location-entry)
+      (error "Cannot find location: %s" location-name))
+    (with-temp-buffer 
+      ;;      (insert (concat "[[" (nth 1 location-entry) "]]"))
+      ;;      (beginning-of-line)
+      ;;      (org-open-at-point)
+      (org-id-goto (cdr location-entry))
+      (setq return-value (funcall func)))
+    (set-buffer currentBuffer)
+    return-value))
+;;    (org-open-link-global (concat "[[" (nth 1 location-entry) "]]"))))
 
 ;; Renamed functions of rewritten org-registry.el
 ;; Temporarily moved here to avoid confusing.
