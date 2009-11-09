@@ -60,6 +60,14 @@
                :mime "xml"
                :function org-fireforg-get-org-subtree))
 
+(add-to-list 'org-protocol-httpd-protocol-alist
+             '("get-annotations-for-url" 
+               :protocol "get-annotations-for-url" 
+               :mime "xml"
+               :function org-fireforg-get-annotations-for-url))
+
+
+
 (defgroup org-fireforg nil
   "Options for the Fireforg extension of Org-mode."
   :group 'org)
@@ -95,12 +103,15 @@ Example: To reference the heading Bookmarks in the file
               (string :tag "Name")	
               (string :tag "Reference"))))
 
+(defun org-fireforg-initialize ()
+  (add-hook 'org-registry-get-entries-hook 'org-fireforg-get-doi-entries))
+
 ;; Searches for header in given file
 (defun org-fireforg-show-annotation (data)
   (let* ((arguments (org-protocol-split-data data t))
          (file (nth 0 arguments))
          (heading (nth 1 arguments))
-         (frameList (or (visible-frame-list) (frame-list) )))
+         (frameList (or (visible-frame-list) (frame-list))))
         (find-file file)
         (goto-char (point-min))
         (re-search-forward (regexp-quote heading))
@@ -109,19 +120,44 @@ Example: To reference the heading Bookmarks in the file
         (if frameList (select-frame-set-input-focus (car frameList)))
 ))
 
+
+(defun org-fireforg-get-annotations-for-url (data)
+  ;;  (message "org-fireforg-get-annotations-for-url with arguments: %s" data)
+  (let* ((arguments (org-protocol-split-data data t))
+         (url (nth 0 arguments))
+         (registry-entries (org-registry-assoc-all url)))
+    (message "org-fireforg-get-annotations-for-url: %s" url)
+    ;; export registry entries to xml
+    (concat 
+     "<org-fireforg-get-annotations-for-url>\n"
+     (mapconcat 
+      (lambda (entry) 
+        (format "<heading file=\"%s\" text=\"%s\" tags=\"%s\" point=\"%d\"/>\n"
+                (nth 3 entry)
+                (nth 4 (nth 4 entry))
+                (or (nth 5 (nth 4 entry)) "")
+                (nth 5 entry)))
+      (org-registry-assoc-all url) "")
+     "</org-fireforg-get-annotations-for-url>")))
+
+
+
+;; BUG: buffer not reset
 (defun org-fireforg-get-org-subtree (data)
-(message "org-fireforg-get-org-subtree with arguments: %s" data)
-(save-current-buffer
-  (save-excursion
-    (let* ((arguments (org-protocol-split-data data t))
-           (location-name (nth 0 arguments)))
-      (org-fireforg-do-at-location 
-       location-name 
-       (lambda ()
-         (org-fireforg-subtree-to-xml)))))))
+  (message "org-fireforg-get-org-subtree with arguments: %s" data)
+  (save-current-buffer
+    (save-excursion
+      (let* ((arguments (org-protocol-split-data data t))
+             (location-name (nth 0 arguments)))
+        (org-fireforg-do-at-location 
+         location-name 
+         (lambda ()
+           (concat "<location name=\"" location-name "\">\n"
+                   (org-fireforg-subtree-to-xml)
+                   "</location>")))))))
 
 (defun org-fireforg-subtree-to-xml ()
-  (let (result)
+  (let (result link-position)
     (beginning-of-line 2)
     (narrow-to-region (point) (save-excursion (org-end-of-subtree)))
     (setq result 
@@ -129,9 +165,16 @@ Example: To reference the heading Bookmarks in the file
            'identity 
            (org-map-entries 
             (lambda ()
-              (let ((heading-components (org-heading-components)))
-                (format "<heading title=\"%s\"/>" (nth 4 heading-components) ))
-              )) ""))
+              (let ((heading-components (org-heading-components))
+                    link)
+                (setq 
+                 link-position 
+                 (re-search-forward org-bracket-link-regexp (save-excursion (org-end-of-subtree)) t))
+                (cond (link-position
+                       (setq link (org-match-string-no-properties 1))
+                       (format "<heading title=\"%s\" url=\"%s\"/>\n" (nth 4 heading-components) link))
+                      (t nil))
+                ))) ""))
     (widen)
     result))
 
@@ -151,244 +194,30 @@ Example: To reference the heading Bookmarks in the file
     return-value))
 ;;    (org-open-link-global (concat "[[" (nth 1 location-entry) "]]"))))
 
-;; Renamed functions of rewritten org-registry.el
-;; Temporarily moved here to avoid confusing.
-;; Subject to change.
-
-
-;; This needs to be customizable
-(defun org-fireforg-registry-file-set () (org-agenda-files))
-
-(defcustom org-fireforg-registry-file
-  (concat (getenv "HOME") "/.org-fireforg-registry.el")
-  "The Org registry file."
-  :group 'org-fireforg-registry
-  :type 'file)
-
-(defcustom org-fireforg-registry-file-xml
-  (concat (getenv "HOME") "/.org-fireforg-registry.xml")
-  "The Org registry file in xml format. Used by fireforg."
-  :group 'org-fireforg-registry
-  :type 'file)
-
-(defcustom org-fireforg-registry-find-file 'find-file-other-window
-  "How to find visit files."
-  :type 'function
-  :group 'org-fireforg-registry)
-
-(defvar org-fireforg-registry-alist nil
-  "An alist containing the Org registry.")
-
-
-;;;###autoload
-(defun org-fireforg-registry-initialize (&optional from-scratch)
-  "Initialize `org-fireforg-registry-alist'. 
-If FROM-SCRATCH is non-nil or the registry does not exist yet,
-create a new registry from scratch and eval it. If the registry
-exists, eval `org-fireforg-registry-file' and make it the new value for
-`org-fireforg-registry-alist'."
-  (interactive "P")
-  ;;(message (concat "org-fireforg-registry-initialize: org-agenda-files = " (with-output-to-string (prin1 org-agenda-files)))) ;; DEBUG
-  (cond ((or from-scratch (not (file-exists-p org-fireforg-registry-file)))
-	  ;; create a new registry
-	  (setq org-fireforg-registry-alist nil)
-	  (mapc 
-	   (lambda (file) 
-	     (setq org-fireforg-registry-alist (org-fireforg-registry-get-entries (expand-file-name file) org-fireforg-registry-alist))) 
-	   (org-fireforg-registry-file-set))
-	  
-;;	  (when from-scratch
-	    (org-fireforg-registry-create org-fireforg-registry-alist)
-	    (org-fireforg-registry-create-xml org-fireforg-registry-alist))
-	(t 
-	 ;; eval the registry file
-	 (with-temp-buffer
-	   (insert-file-contents org-fireforg-registry-file)
-;;         (eval-buffer) ;; reloading the registry is not working yet. Use (org-fireforg-registry-initialize t) for the time being.
-           )
-         (org-fireforg-registry-create-xml org-fireforg-registry-alist))))
-
-;;;###autoload
-(defun org-fireforg-registry-insinuate ()
-  "Call `org-fireforg-registry-update' after saving in Org-mode.
-Use with caution.  This could slow down things a bit."
-  (interactive)
-  (add-hook 'org-mode-hook 
-	    (lambda() (add-hook 'after-save-hook 
-				'org-fireforg-registry-update t t))))
-
-;; Warning: complex data structure ahead.
-(defun org-fireforg-registry-get-entries (currentFile &optional registry)
-  "Merge all Org links in FILE into the registry."
-  (let (bufstr
-        (result registry)
-        (add-entry-for (function (lambda (link desc)
-				   (let* ((point (match-beginning 0))
-					  (onHeading (org-on-heading-p))
-					  (headingPoint 0)
-					  (headingTagsAndDOI 
-                                           (save-excursion 
-                                             (if (org-before-first-heading-p) (cons "" nil) 
-                                               (org-back-to-heading t) 
-                                               (setq headingPoint (point)) 
-                                               (let ((ohc (org-heading-components)))
-                                                 (list (nth 4 ohc) (org-get-tags-at) (org-entry-get headingPoint "BIB_doi"))))))
-					  (heading (car headingTagsAndDOI))
-					  (tags (nth 1 headingTagsAndDOI))
-                                          (doi (if (nth 2 headingTagsAndDOI) (org-fireforg-bibtex-trim-string (nth 2 headingTagsAndDOI))))
-					  (contentEntry (list point desc onHeading))
-					  (headingEntry (list heading headingPoint onHeading tags (list contentEntry) doi))
-					  (fileEntry (list (expand-file-name currentFile) (list headingEntry)))
-					  (linkEntry (list link (list fileEntry)))
-					  (existingLinkEntry (assoc link result))
-					  (existingFileEntry (assoc (expand-file-name currentFile) (nth 1 existingLinkEntry)))
-					  (existingHeadingEntry (assoc heading (nth 1 existingFileEntry))))
-
-				     (cond (existingLinkEntry
-					    (cond (existingFileEntry
-						   (cond (existingHeadingEntry (setf (nth 4 existingHeadingEntry) (cons contentEntry (nth 4 existingHeadingEntry))))
-							 (t (setf (nth 1 existingFileEntry) (cons headingEntry (nth 1 existingFileEntry))))))
-						  (t (setf (nth 1 existingLinkEntry) (cons fileEntry (nth 1 existingLinkEntry))))))
-					   (t (add-to-list 'result linkEntry))))))
-
-		       ))
-
-    (with-temp-buffer
-      (insert-file-contents currentFile)
-      ;; Turn on org-mode in order to use org-heading-components and org-get-tags-at
-      ;; This can have severe impact on performance for large files, so I want to get rid of this requirement.
-      (org-mode)
-      (goto-char (point-min))
-      (while (re-search-forward org-bracket-link-regexp nil t)
-        (funcall add-entry-for (match-string-no-properties 1) (or (match-string-no-properties 3) "No description")))
-      (goto-char (point-min))
-      (while (re-search-forward org-angle-link-re nil t)
-        (funcall add-entry-for (concat (match-string-no-properties 1) ":" (match-string-no-properties 2)) "" ))
-      (goto-char (point-min))
-      (while (re-search-forward org-plain-link-re nil t)
-        (funcall add-entry-for (match-string-no-properties 0) "" ))
-      (goto-char (point-min))
-      ;; add all DOI's in properties as urls with prefix "http://dx.doi.org/"
-      (org-map-entries
-       (lambda () 
-         (let ((doi (org-entry-get (point) "BIB_doi")))
-           ;;(message (concat "current file:" currentFile))
-           (if doi 
-               (funcall add-entry-for 
-                        ;; link
-                        ;; Due to a bug in Zotero it might happen that
-                        ;; the doi identifier is enclosed in two sets
-                        ;; of "{}" brackets.
-                        ;; Therefore the function org-fireforg-bibtex-trim-string is apply two times.
-                        (org-fireforg-doi-to-url (org-fireforg-bibtex-trim-string (org-fireforg-bibtex-trim-string doi)))
-                        ;; description
-                        (nth 4 (org-heading-components)))))))
-      result)))
-
-;;;###autoload
-(defun org-fireforg-registry-update ()
-  "Update the registry for the current Org file, if it is in org-fireforg-registry-file-set."
-  (interactive)
-  (unless (org-mode-p) (error "Not in org-mode"))
-  (cond ((not (file-exists-p org-fireforg-registry-file))
-         ;; registry-file doesn't exist -> create it from scratch
-         (org-fireforg-registry-initialize t))
-        (t
-	 ;; update existing registry-file
-	 (let ((from-file (expand-file-name (buffer-file-name))))
-	   (cond ((member from-file (mapcar 'expand-file-name (org-fireforg-registry-file-set)))
-		  (let ((registryFiltered (org-fireforg-registry-filter-where-filename-not from-file org-fireforg-registry-alist)))
-		    (setq org-fireforg-registry-alist (org-fireforg-registry-get-entries from-file registryFiltered))
-                    (org-fireforg-registry-create org-fireforg-registry-alist)
-                    (org-fireforg-registry-create-xml org-fireforg-registry-alist)
-                    ;;(message (format "Org registry updated for %s. Found %i entries. Registry contains %i entries." (file-name-nondirectory from-file) (length new-entries) (length org-fireforg-registry-alist)))
-                    ))
-                 ;;		 (t (message (format "Current file %s is not in org-fireforg-registry-file-set." from-file))) 
-                 )))))
-
-;; requires expanded filename as argument
-(defun org-fireforg-registry-filter-where-filename-not (filename registry)
-  (cond ((not registry) nil)
-        ((nlistp registry) (error "org-fireforg-registry-filter-where-filename-not: argument registry is not a list"))
-        (t
-         (mapcar (lambda (linkEntry) 
-                   (list (car linkEntry) 
-                         (org-fireforg-registry-filter 
-                          (lambda (fileEntry) 
-                            (not (string= (expand-file-name (car fileEntry)) filename)))
-                          (nth 1 linkEntry))))
-                 registry))))
-
-
-(defun org-fireforg-registry-create (entries)
-  "Create `org-fireforg-registry-file' with ENTRIES."
-  (let (entry)
-    (with-temp-buffer
-      (find-file org-fireforg-registry-file)
-      (erase-buffer)
-      (insert
-         (concat ";; -*- emacs-lisp -*-\n"
-	         ";; Org registry\n"
-	         ";; You shouldn't try to modify this buffer manually\n\n"
-	         "(setq org-fireforg-registry-alist\n"
-                 (org-fireforg-registry-to-string-rec org-fireforg-registry-alist) ")"))
-	 
-      (set-buffer-file-coding-system 'utf-8)
-      (save-buffer)
-      (kill-buffer (current-buffer))))
-  (message "Org registry created"))
-
-(defun org-fireforg-registry-to-string-rec (obj)
-  "Return elisp code that generates an object with identical content as the argument"
-  (cond ((not obj) "nil")
-        ((stringp obj) (concat "\"" obj "\"")) 
-        ((nlistp obj) (with-output-to-string (prin1 obj)))
-        (t ;; obj is a list
-          (concat "(list " (mapconcat 'org-fireforg-registry-to-string-rec obj " ") ")")
-         )
-  )
-)
-
-(defun org-fireforg-registry-create-xml (entries)
-  "Create org-fireforg-registry-file-xml with ENTRIES in xml format."
-  (with-temp-buffer
-    (insert 
-     (concat "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\" ?>\n<orgregistry>\n" 
-	     (reduce 'concat (mapcar (lambda (linkEntry)
-				       (concat "<link url=\"" (url-insert-entities-in-string (nth 0 linkEntry)) "\">\n"
-					       (reduce 'concat (mapcar (lambda (fileEntry) 
-									 (let ((file (nth 0 fileEntry)))
-									   (reduce 'concat (mapcar (lambda (headingEntry) 
-												     (concat " <heading file=\"" (url-insert-entities-in-string file) "\" "
-													     "text=\""          (url-insert-entities-in-string (nth 0 headingEntry)) "\" "
-													     "point=\""         (number-to-string (nth 1 headingEntry)) "\" "
-													     "linkInHeading=\"" (url-insert-entities-in-string (if (nth 2 headingEntry) "t" "f")) "\" "
-													     "tags=\""          (if (nth 3 headingEntry)
-                                                                                                                                    (url-insert-entities-in-string (concat ":" (mapconcat 'identity (nth 3 headingEntry) ":") ":"))
-                                                                                                                                    "") "\" "
-                                                                                                             (if (nth 5 headingEntry) (concat "doi=\"" (nth 5 headingEntry) "\"  ") "")
-													     ">\n  "
-													     (reduce 'concat (mapcar (lambda (contentEntry) 
-																       (concat "  <contentEntry point=\"" (number-to-string (nth 0 contentEntry)) "\" "
-																	       "description=\"" (url-insert-entities-in-string (nth 1 contentEntry)) "\" "
-																	       "inHeading=\"" (if (nth 2 contentEntry) "t" "f") "\"/>\n"))
-																     (nth 4 headingEntry)) :initial-value "")
-													     " </heading>"))
-												   (nth 1 fileEntry)) :initial-value "")
-									   )
-									 ) (nth 1 linkEntry)) :initial-value "")
-					       "</link>\n")) entries) :initial-value "")
-	     "</orgregistry>"))
-
-    (when (file-writable-p org-fireforg-registry-file-xml)
-      (set-buffer-file-coding-system 'utf-8)
-      (write-region (point-min)
-		    (point-max)
-		    org-fireforg-registry-file-xml))))
-
-(defun org-fireforg-registry-filter (condp lst)
-  (delq nil
-	  (mapcar (lambda (x) (and (funcall condp x) x)) lst)))
+(defun org-fireforg-get-doi-entries (file)
+  "Collect all DOI entries from the current buffer."
+  (message "org-fireforg-get-doi-entries called for file :%s" file)
+  (goto-char (point-min))
+  (org-map-entries
+   (lambda () 
+     (let ((doi (org-entry-get (point) "BIB_doi")))
+       ;;(message (concat "current file:" currentFile))
+       (when doi 
+         (setq returnList (cons (list 
+                                 ;; link
+                                 ;; Due to a bug in Zotero it might happen that
+                                 ;; the doi identifier is enclosed in two sets
+                                 ;; of "{}" brackets.
+                                 ;; Therefore the function org-fireforg-bibtex-trim-string is apply two times.
+                                 (org-fireforg-doi-to-url (org-fireforg-bibtex-trim-string (org-fireforg-bibtex-trim-string doi)))
+                                 ;; description
+                                 "DOI Link"
+                                 ;; point
+                                 (point)
+                                 file
+                                 (org-heading-components)
+                                 (point)) returnList))))))
+  returnList)
 
 (defun org-fireforg-receive-bibtex-entry (data)
   ;;(message "Received bibtex string") ;; DEBUG

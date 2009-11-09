@@ -29,6 +29,9 @@ var fireforg = {
     jq: function (a) { return $mb( a, window.content.document); },
     jQuery: $mb,
     requestid: 0,
+    EMACSCLIENT: "EMACSCLIENT",
+    HTTPD: "HTTPD",
+    MACWORKAROUND: "MACWORKAROUND",
     getPreferenceManager: function () {
         return Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
     },
@@ -50,15 +53,19 @@ var fireforg = {
                 var objectJQ = fireforg.jq(this);
                 var url = objectJQ.attr("href");
                 var urlMapped = fireforg.linkMapLookup( url );
-
+                //alert("looking up mapped entry " + urlMapped);
 
                 var registryEntry = fireforg.getRegistryEntryFromFileForUrl( url );
 
                 var registryEntryMapped = null;
-                // Check whether there is a url mapped to this one
-                if( urlMapped && urlMapped != "") 
-                    registryEntryMapped = fireforg.getRegistryEntryFromFileForUrl( urlMapped );
 
+                // Check whether there is a url mapped to this one
+                if( urlMapped && urlMapped != "") {
+                    alert("looking up mapped entry " + urlMapped);
+                    registryEntryMapped = fireforg.getRegistryEntryFromFileForUrl( urlMapped );
+                }
+
+                //alert( "After urlMapped");
                 // if( registryEntryMapped ) {
                 //     // Merge
                 //     registryEntry = fireforg.jq( registryEntry ).append( fireforg.jq( registryEntryMapped ).children() ).eq(0);
@@ -81,10 +88,11 @@ var fireforg = {
                             fireforg.jq( registryEntryMapped ).children().each( function () { tooltipText = tooltipText + fireforg.jq( this ).attr("text") + "\n"; });
                         objectJQ.attr("title", tooltipText );
 		    }
-		} 
+		}
 
                 // If no mapping entry exists and prefetchLinks is on, fetch document, extract doi and add to link map
                 if( urlMapped == null && fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") ) {
+                    alert("Prefetching link " + url);
                     if( fireforg.prefetchUrlAllowed( url ) ) {
                         fireforg.jQuery.get( url, function (htmlText) {
                                 // get doi
@@ -134,31 +142,40 @@ var fireforg = {
                   //img.src = "chrome://fireforg/skin/org-mode-unicorn_16.png";
                   //annotation.appendChild( img );
                   //                fireforg.orgProtocolSendURL("fireforg-get-annotations://" + encodeURIComponent(fireforg.requestid)  + "/" + encodeURIComponent( window.content.document.URL));
-                annotation.textContent = "Org!";
-                fireforg.jq( annotation ).css({"border-style":"solid", "border-width" : "1px","background-color" : "gray"});
+                  annotation.textContent = "Org!";
+                  fireforg.jq( annotation ).css({"border-style":"solid", "border-width" : "1px","background-color" : "gray"});
 
-                fireforg.jq("body").append( annotation );
-		var annotationWidth = fireforg.jq("body").children().eq(".orgNote").width();                
-                var annotationHeight = fireforg.jq(annotation).height();
-                //alert(annotationWidth);
-		fireforg.jq(annotation).css( { "position" : "absolute", "left" : "" + (pos.left-40) + "px", "top" : "" + pos.top + "px" ,"z-index" : "3"});
-                //$mb( annotation, window.content.document ).css( { "position" : "absolute", "left" : "-10px", "top" : "-10px" ,"z-index" : "3"});
-		*/
+                  fireforg.jq("body").append( annotation );
+                  var annotationWidth = fireforg.jq("body").children().eq(".orgNote").width();                
+                  var annotationHeight = fireforg.jq(annotation).height();
+                  //alert(annotationWidth);
+                  fireforg.jq(annotation).css( { "position" : "absolute", "left" : "" + (pos.left-40) + "px", "top" : "" + pos.top + "px" ,"z-index" : "3"});
+                  //$mb( annotation, window.content.document ).css( { "position" : "absolute", "left" : "-10px", "top" : "-10px" ,"z-index" : "3"});
+                  */
 	    });
     },
     onLoadSite: function () {
-
-	if( fireforg.loadRegistryFromFile() ) {
-            if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.lookupLinksOnLoad") )
-		fireforg.lookupAndModifyLinks();
-	} else {
-	    fireforg.setStatusBarIconError();
-	}
-
+        switch( fireforg.getPreferenceManager().getCharPref("extensions.fireforg.orgProtocolSendMethod") ) {
+        case fireforg.EMACSCLIENT:
+        if( fireforg.loadRegistryFromFile() ) {
+            if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.lookupLinksOnLoad") ) {
+                fireforg.lookupAndModifyLinks();
+            }
+        } else {
+            fireforg.setStatusBarIconError();
+        };
+        break;
+        case fireforg.HTTPD: 
+        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.lookupLinksOnLoad") ) {
+            fireforg.lookupAndModifyLinks();
+        }
+        break;
+        }
     },
     onUrlSwitch: function() {
 	        
-        if( fireforg.loadRegistryFromFile() ) {
+        if(  !(fireforg.getPreferenceManager().getCharPref("extensions.fireforg.orgProtocolSendMethod") == fireforg.EMACSCLIENT)
+           || fireforg.loadRegistryFromFile() ) {
 
 	    // set waiting state
 	    fireforg.links = [];
@@ -171,7 +188,8 @@ var fireforg = {
             fireforg.currentLinkRegistryEntry = null;
             fireforg.currentHeadingsMatchingDOI = null;
 
-            if( fireforg.registryDOM ) {
+            if( !(fireforg.getPreferenceManager().getCharPref("extensions.fireforg.orgProtocolSendMethod") == fireforg.EMACSCLIENT)
+                || fireforg.registryDOM ) {
 		
 		// get all heading for url
 		fireforg.currentLinkRegistryEntry = fireforg.getRegistryEntryFromFileForUrl( url );
@@ -429,9 +447,6 @@ var fireforg = {
             popupMenu.openPopup( document.getElementById("fireforg_spi"),"before_end",0,0,false,null);
         }
     },
-    orgProtocolAcknowledgeResponse: function (id) {
-	fireforg.orgProtocolSendURL("fireforg-acknowledge://" + encodeURIComponent(id));
-    },
     orgProtocolShowAnnotation: function (file, heading, encoded) {
         
         if( !encoded ) {
@@ -521,11 +536,23 @@ var fireforg = {
             stream.close();
 
         } else {
-            var req = new XMLHttpRequest();
+            switch( fireforg.getPreferenceManager().getCharPref("extensions.fireforg.orgProtocolSendMethod") ) {
+
+            case "EMACSCLIENT": var req = new XMLHttpRequest();
             try {
                 req.open('POST', "org-protocol://" + url,true);
                 req.send(null);
             } catch (ex) { }
+            break;
+            
+            case "HTTPD":
+            var req = new XMLHttpRequest();
+            try {
+                req.open('GET', "http://localhost:" + fireforg.getPreferenceManager().getIntPref("extensions.fireforg.http.port") + "/org-protocol://" + url,true);
+                req.send(null);
+            } catch (ex) { }
+            break;
+            }
         }
     },
     contextMenuItemShowing: function (e) {
@@ -645,7 +672,7 @@ var fireforg = {
             // Send to org
             fireforg.orgProtocolSendURL("fireforg-bibtex-entry://" + encodeURIComponent( bibtex ) ); 
         }
-        },
+    },
 
     /* READ PREFERENCES */
     prefRememberTemplates: function () {
@@ -654,12 +681,37 @@ var fireforg = {
     /* ACCESS REGISTRY */
     /* Retrieves all entries for url from the registry file.*/
     getRegistryEntryFromFileForUrl: function (url) {
-	try {
+        switch( fireforg.getPreferenceManager().getCharPref("extensions.fireforg.orgProtocolSendMethod") ) {
+        case fireforg.EMACSCLIENT:
+        try {
 	    // the xpath query may be invalid for certain url's
 	    return fireforg.registryDOM.evaluate("//link[@url=\"" + url +"\"]", fireforg.registryDOM, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
 	} catch (e) {
 	    return null;
 	}
+        break;
+        case fireforg.HTTPD:
+        //        alert( "Url: " + url);
+        var parser = new DOMParser();
+        var response = fireforg.jQuery.ajax({ type: "GET",
+                                              url: ("http://localhost:15187/org-protocol-http://get-annotations-for-url://" + encodeURIComponent( url ) ),
+                                              cache: false,
+                                              async: false,
+                                              data: "",
+                                              timeout: 3000}).responseText;
+        //        alert( response );
+        var tmpDOM = parser.parseFromString( response, "text/xml");
+        var xPathObject = tmpDOM.evaluate("//org-fireforg-get-annotations-for-url", tmpDOM, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+        if( fireforg.jq( xPathObject ).children().size() > 0 ) {
+            //            alert("Returning xpath.");          
+            return xPathObject;
+        } else {
+            //            alert("Returning null.");
+            return null;
+        }
+        break;
+        }
+	
     },
     /* Retrieves all entries for given url from the registry using the
      * cached mappings and the DOI if enabled.  

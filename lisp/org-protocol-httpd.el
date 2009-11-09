@@ -104,14 +104,14 @@ format and the subprotocol is registered in
   (condition-case err
       (progn
         ;; DEBUG
-        (message "filter with process: %s " process)
-        (message "org-protocol-httpd-filter NEW: received: %s" header)
+;;        (message "filter with process: %s " process)
+;;        (message "org-protocol-httpd-filter NEW: received: %s" header)
         (let* ((header-alist (org-protocol-httpd-parse-header header))
-               (path (replace-regexp-in-string "^/" "" (cdr (assoc "GET" header-alist))))
+               (path (car (split-string (replace-regexp-in-string "^/" "" (cdr (assoc "GET" header-alist))) "?")))
                responseString 
                (responseStatus 500))
           ;; DEBUG
-          (message "org-protocol-httpd-filter NEW: PATH: %s" path)
+;;          (message "org-protocol-httpd-filter NEW: PATH: %s" path)
           (cond ((string-match (concat "^" org-protocol-the-protocol ":") path)
                  ;; let org-protocol handle the path
                  ;; TODO: Find a way to check whether path has been digested without errors
@@ -119,7 +119,7 @@ format and the subprotocol is registered in
                  (org-protocol-check-filename-for-protocol path nil nil (lambda () (org-protocol-httpd-stop process)))
                  (org-protocol-httpd-send-response process 200 "txt" ""))
                 ((string-match (concat "^" org-protocol-httpd-the-protocol "://\\([^:/]+\\)://\\(.*\\)") path)
-                 (message "httpd-protocol encountered")
+;;                 (message "httpd-protocol encountered")
                  (let ((sub-protocol-string (match-string 1 path))
                        sub-protocol-entry responseString)  
                    (when (null sub-protocol-string)
@@ -128,13 +128,13 @@ format and the subprotocol is registered in
                    (when (null sub-protocol-entry)
                      (error "No sub protocol." ))
                    (setq sub-protocol-entry (cdr sub-protocol-entry))
-                   (message "Found sub protocol")
+;;                   (message "Found sub protocol")
                    (setq responseString 
                          (funcall 
                           (plist-get sub-protocol-entry :function)
                           (match-string 2 path)
                           ))
-                   (message "Function executed")
+ ;;                  (message "Function executed")
                    (org-protocol-httpd-send-response process 200 
                                                      (plist-get sub-protocol-entry :mime)
                                                      responseString)))
@@ -167,13 +167,13 @@ first space or \": \"."
   "Send a string as response to the currently processed request.
 See also `org-protocol-httpd-send-eof'."
   ;; DEBUG
-  (message "Sending response string.") 
+;;  (message "Sending response string.") 
   (process-send-string process 
                        (concat 
                         (org-protocol-httpd-generate-header mime status (length string))
                         string))
   (process-send-eof process)
-  (message "Deleting process: %s" process)
+;;  (message "Deleting process: %s" process)
   (delete-process process))
 
 (defun org-protocol-httpd-send-eof (process)
