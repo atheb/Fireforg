@@ -104,6 +104,7 @@ Example: To reference the heading Bookmarks in the file
               (string :tag "Reference"))))
 
 (defun org-fireforg-initialize ()
+  (interactive)
   (add-hook 'org-registry-get-entries-hook 'org-fireforg-get-doi-entries))
 
 ;; Searches for header in given file
@@ -112,13 +113,14 @@ Example: To reference the heading Bookmarks in the file
          (file (nth 0 arguments))
          (heading (nth 1 arguments))
          (frameList (or (visible-frame-list) (frame-list))))
-        (find-file file)
-        (goto-char (point-min))
-        (re-search-forward (regexp-quote heading))
-        (beginning-of-line)
-        (org-show-context)
-        (if frameList (select-frame-set-input-focus (car frameList)))
-))
+;;    (message "In file: %s search for: %s" file (regexp-quote heading))
+    (find-file file)
+    (goto-char (point-min))
+    (re-search-forward (regexp-quote heading))
+    (beginning-of-line)
+    (org-show-context)
+    (if frameList (select-frame-set-input-focus (car frameList)))
+    ))
 
 
 (defun org-fireforg-get-annotations-for-url (data)
@@ -194,9 +196,9 @@ Example: To reference the heading Bookmarks in the file
     return-value))
 ;;    (org-open-link-global (concat "[[" (nth 1 location-entry) "]]"))))
 
-(defun org-fireforg-get-doi-entries (file)
+(defun org-fireforg-get-doi-entries (doi-file)
   "Collect all DOI entries from the current buffer."
-  (message "org-fireforg-get-doi-entries called for file :%s" file)
+;;  (message "org-fireforg-get-doi-entries called for file: %s" file)
   (goto-char (point-min))
   (org-map-entries
    (lambda () 
@@ -214,7 +216,7 @@ Example: To reference the heading Bookmarks in the file
                                  "DOI Link"
                                  ;; point
                                  (point)
-                                 file
+                                 doi-file
                                  (org-heading-components)
                                  (point)) returnList))))))
   returnList)

@@ -77,7 +77,7 @@ Here is an example:
 (defun org-protocol-httpd-start-server ()
   "Start org-protocols server."
   (interactive)
-  (org-protocol-httpd-stop-server)
+  (org-protocol-httpd-stop)
   (make-network-process
    :name org-protocol-httpd-process-name
    :server t
