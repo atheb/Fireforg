@@ -198,27 +198,32 @@ Example: To reference the heading Bookmarks in the file
 
 (defun org-fireforg-get-doi-entries (doi-file)
   "Collect all DOI entries from the current buffer."
-;;  (message "org-fireforg-get-doi-entries called for file: %s" file)
+  ;; returnList is defined in org-registry-get-entries and serves as a
+  ;;  return value
+  ;; (message "org-fireforg-get-doi-entries called for
+  ;;  file: %s" file)
   (goto-char (point-min))
-  (org-map-entries
-   (lambda () 
-     (let ((doi (org-entry-get (point) "BIB_doi")))
-       ;;(message (concat "current file:" currentFile))
-       (when doi 
-         (setq returnList (cons (list 
-                                 ;; link
-                                 ;; Due to a bug in Zotero it might happen that
-                                 ;; the doi identifier is enclosed in two sets
-                                 ;; of "{}" brackets.
-                                 ;; Therefore the function org-fireforg-bibtex-trim-string is apply two times.
-                                 (org-fireforg-doi-to-url (org-fireforg-bibtex-trim-string (org-fireforg-bibtex-trim-string doi)))
-                                 ;; description
-                                 "DOI Link"
-                                 ;; point
-                                 (point)
-                                 doi-file
-                                 (org-heading-components)
-                                 (point)) returnList))))))
+  (while (re-search-forward "BIB_doi" nil t)
+    (unless (org-before-first-heading-p)
+      (save-excursion
+        (org-back-to-heading)
+        (let ((doi (org-entry-get (point) "BIB_doi")))
+          ;;(message (concat "current file:" currentFile))
+          (when doi 
+            (setq returnList (cons (list 
+                                    ;; link
+                                    ;; Due to a bug in Zotero it might happen that
+                                    ;; the doi identifier is enclosed in two sets
+                                    ;; of "{}" brackets.1
+                                    ;; Therefore the function org-fireforg-bibtex-trim-string is apply two times.
+                                    (org-fireforg-doi-to-url (org-fireforg-bibtex-trim-string (org-fireforg-bibtex-trim-string doi)))
+                                    ;; description
+                                    "DOI Link"
+                                    ;; point
+                                    (point)
+                                    doi-file
+                                    (org-heading-components)
+                                    (point)) returnList)))))))
   returnList)
 
 (defun org-fireforg-receive-bibtex-entry (data)
