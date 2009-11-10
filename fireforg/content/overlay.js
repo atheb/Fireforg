@@ -51,7 +51,8 @@ var fireforg = {
         linksJQ.each( function () {
 
                 var objectJQ = fireforg.jq(this);
-                var url = objectJQ.attr("href");
+                var link = objectJQ.attr("href");
+                var url = fireforg.linkToAbsoluteUrl( link, window.content.document.URL );
                 var urlMapped = fireforg.linkMapLookup( url );
                 //alert("looking up mapped entry " + urlMapped);
 
@@ -794,6 +795,30 @@ var fireforg = {
         }        
         else
             return false;
+    },
+    linkToAbsoluteUrl: function (link, baseUrl) {
+
+        if( link.match(/^[^:]{1,5}:/i) )
+            return link;
+        var baseDir = baseUrl.replace(/\/[^\/]+$/, "/");
+        var rootDir = baseDir.match(/^[^\/]*\/\/[^\/]*\//i);
+        var basePath = baseDir.substring( rootDir[0].length );
+        var newPath = "";
+        if( link.match(/^\/(.*)/i) ) {
+            newPath = RegExp.$1;
+        } else {
+            newPath = basePath + link;
+        }
+        // replace /./
+        newPath = newPath.replace(/^\.\//, "");
+        newPath = newPath.replace(/\/\.\//g, "/");
+        // replace ..
+        var tmpPath = "";
+        while( (newPath = newPath.replace(/[^\/]*\/\.\.\//g, "") ) != tmpPath) {
+            tmpPath = newPath;
+        }
+        //alert("linkToAbsoluteUrl: link = " + link + ", rootDir = " + rootDir + "\n=> " + newLink);
+        return rootDir + newPath;
     },
     /* DOI HANDLING */
     getDOIFromHtml: function( html ) {
