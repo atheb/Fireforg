@@ -92,8 +92,9 @@ var fireforg = {
 
                 // If no mapping entry exists and prefetchLinks is on, fetch document, extract doi and add to link map
                 if( urlMapped == null && fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") ) {
-                    alert("Prefetching link " + url);
+
                     if( fireforg.prefetchUrlAllowed( url ) ) {
+                        alert("Prefetching link " + url);
                         fireforg.jQuery.get( url, function (htmlText) {
                                 // get doi
                                 var doi = fireforg.getDOIFromHtml( htmlText );
@@ -785,8 +786,12 @@ var fireforg = {
     },
     /* PREFETCHING */
     prefetchUrlAllowed: function (url) {
-        if( url )
-            return url.match(/^http:\/\//i) && !url.match(/.*\.pdf$/i) && !url.match(/.*\.gif$/i) && !url.match(/.*\.png$/i) && !url.match(/.*\.swf$/i);
+        if( url ) {
+            ;;            return url.match(/^http:\/\//i) && !url.match(/.*\.pdf$/i) && !url.match(/.*\.gif$/i) && !url.match(/.*\.png$/i) && !url.match(/.*\.swf$/i);
+            var whitelistRegexp = fireforg.getPreferenceManager().getCharPref("extensions.fireforg.prefetchLinks.whitelistRegexp");
+            var blacklistRegexp = fireforg.getPreferenceManager().getCharPref("extensions.fireforg.prefetchLinks.blacklistRegexp");
+            return url.match( RegExp(whitelistRegexp) ) && !url.match( RegExp( blacklistRegexp ) );
+        }        
         else
             return false;
     },
@@ -824,7 +829,7 @@ var fireforg = {
 
                         });
                 return rootNode.empty().append( uniqueChildren );
-                }
+        }
 
         };
         window.addEventListener("load", function(e) { fireforg.onLoad(e); }, false);

@@ -12,30 +12,49 @@
       <preference id="rememberTemplates" name="extensions.fireforg.rememberTemplates" type="string"/>
       <preference id="matchDOI" name="extensions.fireforg.matchDOI" type="bool"/>
       <preference id="prefetchLinks" name="extensions.fireforg.prefetchLinks" type="bool"/>
+      <preference id="prefetchLinks.whitelistRegexp" name="extensions.fireforg.prefetchLinks.whitelistRegexp" type="string"/>
+      <preference id="prefetchLinks.blacklistRegexp" name="extensions.fireforg.prefetchLinks.blacklistRegexp" type="string"/>
       <preference id="orgProtocolSendMethod" name="extensions.fireforg.orgProtocolSendMethod" type="string"/>
 
       <!-- temporary options for org-protocol mac workaround -->
       <preference id="macWorkaround" name="extensions.fireforg.macWorkaround" type="bool"/>
       <preference id="macWorkaroundFile" name="extensions.fireforg.macWorkaroundFile" type="string"/>
     </preferences>
-    <label>&prefRegistryFile.label;</label><textbox preference="registryFile"/>
-    <checkbox preference="lookupLinksOnLoad" label="&prefLookupLinksOnLoad.label;"/>
-    <label>&prefAnnotationLinkStyle.label;</label><textbox preference="annotationLinkStyle"/>
-    <checkbox preference="annotationLinkTooltip" label="&prefAnnotationLinkTooltip.label;"/>
-    <checkbox preference="injectZotero" label="&injectZotero.label;"/>
-    <checkbox preference="matchDOI" label="&matchDOI.label;"/>
-    <checkbox preference="prefetchLinks" label="&prefetchLinks.label;"/>
+    <tabbox>
+      <tabs>
+        <tab label="General"/>
+        <tab label="Link prefetching"/>
+      </tabs>
+      <tabpanels>
+        <tabpanel value="value" title="title">
+          <vbox>
+            <hbox><label>&prefRegistryFile.label;</label><textbox preference="registryFile"/></hbox>
+            <checkbox preference="lookupLinksOnLoad" label="&prefLookupLinksOnLoad.label;"/>
+            <hbox><label>&prefAnnotationLinkStyle.label;</label><textbox preference="annotationLinkStyle"/></hbox>
+            <checkbox preference="annotationLinkTooltip" label="&prefAnnotationLinkTooltip.label;"/>
+            <checkbox preference="injectZotero" label="&injectZotero.label;"/>
+            <checkbox preference="matchDOI" label="&matchDOI.label;"/>
+            <hbox><label>&prefDefaultRememberTemplate.label;</label><textbox preference="rememberTemplates" style="width:20px;"/></hbox>
 
-    <label>&prefDefaultRememberTemplate.label;</label><textbox preference="rememberTemplates" style="width:20px;"/>
-
-<radiogroup preference="orgProtocolSendMethod">
-<radio label="emacsclient" value="EMACSCLIENT" />
-<radio label="httpd" value="HTTPD" />
-<radio label="mac workaround" value="MACWORKAROUND" />
-</radiogroup>
+            <radiogroup preference="orgProtocolSendMethod">
+              <radio label="emacsclient" value="EMACSCLIENT" />
+              <radio label="httpd" value="HTTPD" />
+              <radio label="mac workaround" value="MACWORKAROUND" />
+            </radiogroup>
 
 
-    <checkbox preference="macWorkaround" label="Enable workaround for Mac"/>
-    <label>Temporary file for Mac workaround</label><textbox preference="macWorkaroundFile"/>
+            <checkbox preference="macWorkaround" label="Enable workaround for Mac"/>
+            <label>Temporary file for Mac workaround</label><textbox preference="macWorkaroundFile"/>
+          </vbox>
+        </tabpanel>
+        <tabpanel>
+          <vbox flex="1">
+            <checkbox preference="prefetchLinks" label="&prefetchLinks.label;"/>
+            <hbox><label>&prefetchLinks.whitelistRegexp.label;</label><textbox preference="prefetchLinks.whitelistRegexp"/></hbox>
+            <hbox><label>&prefetchLinks.blacklistRegexp.label;</label><textbox preference="prefetchLinks.blacklistRegexp"/></hbox>
+          </vbox>
+        </tabpanel>
+      </tabpanels>
+    </tabbox>
   </prefpane>
 </prefwindow>
