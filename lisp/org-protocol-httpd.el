@@ -104,40 +104,49 @@ format and the subprotocol is registered in
   (condition-case err
       (progn
         ;; DEBUG
-;;        (message "filter with process: %s " process)
-;;        (message "org-protocol-httpd-filter NEW: received: %s" header)
+        ;;        (message "filter with process: %s " process)
+        ;;        (message "org-protocol-httpd-filter NEW: received: %s" header)
         (let* ((header-alist (org-protocol-httpd-parse-header header))
                (path (car (split-string (replace-regexp-in-string "^/" "" (cdr (assoc "GET" header-alist))) "?")))
                responseString 
                (responseStatus 500))
           ;; DEBUG
-;;          (message "org-protocol-httpd-filter NEW: PATH: %s" path)
+          ;;          (message "org-protocol-httpd-filter NEW: PATH: %s" path)
           (cond ((string-match (concat "^" org-protocol-the-protocol ":") path)
                  ;; let org-protocol handle the path
                  ;; TODO: Find a way to check whether path has been digested without errors
                  ;;       Use an error handler for this?
-                 (org-protocol-check-filename-for-protocol path nil nil (lambda () (org-protocol-httpd-stop process)))
-                 (org-protocol-httpd-send-response process 200 "txt" ""))
+                 (org-protocol-httpd-send-response process 200 "txt" "")                 
+                 (org-protocol-check-filename-for-protocol path nil nil (lambda () (org-protocol-httpd-stop process))))
+                 
                 ((string-match (concat "^" org-protocol-httpd-the-protocol "://\\([^:/]+\\)://\\(.*\\)") path)
-;;                 (message "httpd-protocol encountered")
+                 ;;                 (message "httpd-protocol encountered")
                  (let ((sub-protocol-string (match-string 1 path))
-                       sub-protocol-entry responseString)  
+                       sub-protocol-entry)
                    (when (null sub-protocol-string)
-                     (error "Error parsing sub protocol!"))                
+                     (error "Error parsing sub protocol!"))
                    (setq sub-protocol-entry (assoc sub-protocol-string org-protocol-httpd-protocol-alist))
                    (when (null sub-protocol-entry)
                      (error "No sub protocol." ))
                    (setq sub-protocol-entry (cdr sub-protocol-entry))
-;;                   (message "Found sub protocol")
-                   (setq responseString 
-                         (funcall 
-                          (plist-get sub-protocol-entry :function)
-                          (match-string 2 path)
-                          ))
- ;;                  (message "Function executed")
-                   (org-protocol-httpd-send-response process 200 
-                                                     (plist-get sub-protocol-entry :mime)
-                                                     responseString)))
+                   ;;                   (message "Found sub protocol")
+                   (let* ((sub-protocol-function (plist-get sub-protocol-entry :function))
+                          (sub-protocol-kill-client (plist-get sub-protocol-entry :kill-client))
+                          (sub-protocol-arguments (match-string 2 path))
+                          responseString)  
+                     (cond (sub-protocol-kill-client
+                            (org-protocol-httpd-send-response process 200 "txt" "")
+                            (funcall sub-protocol-function sub-protocol-arguments))
+                           (t
+                            (setq responseString 
+                                  (funcall 
+                                   sub-protocol-function
+                                   sub-protocol-arguments
+                                   ))
+                            ;;                  (message "Function executed")
+                            (org-protocol-httpd-send-response process 200 
+                                                              (plist-get sub-protocol-entry :mime)
+                                                              responseString))))))
                 (t 
                  (org-protocol-httpd-send-response process 500 "txt" "")))))
     ;; error handler
@@ -195,3 +204,4 @@ See also `org-protocol-httpd-send-eof'."
             "Content-length: " (number-to-string content-length) "\n"
             "Connection: close\n"
            "\n")))
+(provide 'org-protocol-httpd)
