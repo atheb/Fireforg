@@ -151,11 +151,13 @@ format and the subprotocol is registered in
                  (org-protocol-httpd-send-response process 500 "txt" "")))))
     ;; error handler
     (quit 
-     (message "Quit in org-protocol-httpd-filter")
-     (org-protocol-httpd-send-response process 500 "txt" ""))
+     (when (process-status process) 
+       (org-protocol-httpd-send-response process 500 "txt" ""))
+     (message "Quit in org-protocol-httpd-filter"))
     (error
-     (org-protocol-httpd-send-response process 500 "txt" "")
-     (message "Caught error in org-protocol-httpd-filter: %s" err))))
+     (when (process-status process)
+       (org-protocol-httpd-send-response process 500 "txt" ""))
+     (error "Caught error in org-protocol-httpd-filter: %s" err))))
 
 (defun org-protocol-httpd-parse-header (header)
   "Parse a http header into an alist by splitting each line at the
