@@ -281,8 +281,7 @@ Example: To reference the heading Bookmarks in the file
          (heading 
           (concat "* [" 
                   (when url (concat "[" (org-fireforg-bibtex-trim-string url) "]"))
-                  "[" (org-fireforg-bibtex-trim-string (cdr (assoc "title" bibtexEntry))) "]"
-                  (when url "]") "]" )))
+                  "[" (org-fireforg-bibtex-trim-string (cdr (assoc "title" bibtexEntry))) "]]" )))
     ;;(with-temp-buffer (insert heading) (goto-char (point-min)) (org-id-get-create) (buffer-substring (point-min) (point-max)))
     heading
     ))
