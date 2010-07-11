@@ -46,26 +46,27 @@
 
 (add-to-list 'org-protocol-protocol-alist
              '("Fireforg show annotation: fireforg-show-annotation://<file (encoded)>/<header (encoded)>"
-              :protocol "fireforg-show-annotation"
-              :function org-fireforg-show-annotation))
+               :protocol "fireforg-show-annotation"
+               :function org-fireforg-show-annotation))
 
 (add-to-list 'org-protocol-protocol-alist
              '("Fireforg get bibtex entry: fireforg-bibtex-entry://<bibtex entry (encoded)>"
-              :protocol "fireforg-bibtex-entry"
-              :function org-fireforg-receive-bibtex-entry))
+               :protocol "fireforg-bibtex-entry"
+               :function org-fireforg-receive-bibtex-entry))
 
-(add-to-list 'org-protocol-httpd-protocol-alist
-             '("get-org-subtree" 
-               :protocol "get-org-subtree" 
-               :mime "xml"
-               :function org-fireforg-get-org-subtree))
-
-(add-to-list 'org-protocol-httpd-protocol-alist
-             '("get-annotations-for-url" 
-               :protocol "get-annotations-for-url" 
-               :mime "xml"
-               :function org-fireforg-get-annotations-for-url))
-
+(cond ((boundp 'org-protocol-httpd-protocol-alist)
+       (add-to-list 'org-protocol-httpd-protocol-alist
+                    '("get-org-subtree" 
+                      :protocol "get-org-subtree" 
+                      :mime "xml"
+                      :function org-fireforg-get-org-subtree))
+       (add-to-list 'org-protocol-httpd-protocol-alist
+                    '("get-annotations-for-url" 
+                      :protocol "get-annotations-for-url" 
+                      :mime "xml"
+                      :function org-fireforg-get-annotations-for-url)))
+      (t
+       (message "org-protocol-httpd no loaded!")))
 
 
 (defgroup org-fireforg nil
@@ -272,14 +273,44 @@ Example: To reference the heading Bookmarks in the file
    (reduce 'concat (mapcar (lambda (entry) 
      (concat (cond ((string= (car entry) "=key=") "  :CUSTOM_ID")
                    ((string= (car entry) "=type=") "  :BIB_entryType")
-                   (t (concat "  :BIB_" (car entry) ))) ": " (cdr entry) "\n")) bibtexEntry) :initial-value "")
+                   (t (concat "  :BIB_" (car entry) ))) ": " (cdr entry) "\n")) (nreverse bibtexEntry)) :initial-value "")
    ":END:\n"))
 
 (defun org-fireforg-generate-heading (bibtexEntry)
-  (let ((heading (concat "* [[" (org-fireforg-bibtex-trim-string (cdr (assoc "url" bibtexEntry))) "][" (org-fireforg-bibtex-trim-string (cdr (assoc "title" bibtexEntry))) "]]" )))
+  (let* ((url (cdr (assoc "url" bibtexEntry)))
+         (heading 
+          (concat "* [" 
+                  (when url (concat "[" (org-fireforg-bibtex-trim-string url) "]"))
+                  "[" (org-fireforg-bibtex-trim-string (cdr (assoc "title" bibtexEntry))) "]]" )))
     ;;(with-temp-buffer (insert heading) (goto-char (point-min)) (org-id-get-create) (buffer-substring (point-min) (point-max)))
     heading
     ))
+
+(defun org-fireforg-import-bibtex-file (file) 
+  (interactive "F")
+  (save-excursion
+    (let ((curBuffer (current-buffer))
+          (tmpBuffer (generate-new-buffer "* fireforg tmp *"))
+          bibtexEntry entryString)
+      (switch-to-buffer tmpBuffer)
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (while (< (point) (point-max))        
+        (re-search-forward "@")
+        (goto-char (match-beginning 0))
+        (cond ((or 
+                (looking-at "@string")
+                (looking-at "@comment")
+                (looking-at "@preamble"))
+               (forward-char))
+              (t
+               (setq bibtexEntry (bibtex-parse-entry))
+               (switch-to-buffer curBuffer)
+               (insert (org-fireforg-generate-heading bibtexEntry))
+               (insert "\n")
+               (insert (org-fireforg-bibtex-entry-to-properties bibtexEntry))
+               ))
+        (switch-to-buffer tmpBuffer)))))
 
 ;; exports the bibtex properties of the current buffer to selectable file
 (defun org-fireforg-export-bibtex-to-file (file)
