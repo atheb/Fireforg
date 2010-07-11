@@ -62,7 +62,7 @@ var fireforg = {
 
                 // Check whether there is a url mapped to this one
                 if( urlMapped && urlMapped != "") {
-                    alert("looking up mapped entry " + urlMapped);
+                    //alert("looking up mapped entry " + urlMapped);
                     registryEntryMapped = fireforg.getRegistryEntryFromFileForUrl( urlMapped );
                 }
 
@@ -95,7 +95,7 @@ var fireforg = {
                 if( urlMapped == null && fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") ) {
 
                     if( fireforg.prefetchUrlAllowed( url ) ) {
-                        alert("Prefetching link " + url);
+                        //alert("Prefetching link " + url);
                         fireforg.jQuery.get( url, function (htmlText) {
                                 // get doi
                                 var doi = fireforg.getDOIFromHtml( htmlText );
