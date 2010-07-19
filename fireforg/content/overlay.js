@@ -143,7 +143,7 @@ var fireforg = {
                   //                var img = document.createElement('img');
                   //img.src = "chrome://fireforg/skin/org-mode-unicorn_16.png";
                   //annotation.appendChild( img );
-                  //                fireforg.orgProtocolSendURL("fireforg-get-annotations://" + encodeURIComponent(fireforg.requestid)  + "/" + encodeURIComponent( window.content.document.URL));
+                  //                fireforg_protocol.orgProtocolSendURL("fireforg-get-annotations://" + encodeURIComponent(fireforg.requestid)  + "/" + encodeURIComponent( window.content.document.URL));
                   annotation.textContent = "Org!";
                   fireforg.jq( annotation ).css({"border-style":"solid", "border-width" : "1px","background-color" : "gray"});
 
@@ -317,13 +317,13 @@ var fireforg = {
         //     window.contentAreaClick = fireforg.contentAreaClick;
         // }
 
-
-
 	this.initialized = true;
 	this.strings = document.getElementById("fireforg-strings");
 
+// If Zotero is to be injected into, then do so after a small delay so
+// as to ensure, that the Zotero plugin is actually loaded.
         if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.injectZotero") )        
-            window.setTimeout( fireforg.injectZoteroAccordingToPref ,5000);
+            window.setTimeout( fireforg_zotero.injectZoteroAccordingToPref, 5000);
         
 
     },
@@ -409,14 +409,14 @@ var fireforg = {
         var tmpItem = document.createElement("menuitem");
         tmpItem.setAttribute("class","fireforg-popupmenu");
         tmpItem.setAttribute("label", "store-link" );
-        tmpItem.setAttribute("onclick","fireforg.orgProtocolStoreLink(\"" + linkToStoreO + "\",\"" + titleToStoreO + "\")");
+        tmpItem.setAttribute("onclick","fireforg_protocol.orgProtocolStoreLink(\"" + linkToStoreO + "\",\"" + titleToStoreO + "\")");
         menu.appendChild( tmpItem );
 
         fireforg.appendRememberEntriesToMenu( 
                                              menu, 
                                              rememberTemplateList, 
                                              function( template ) { return  "remember (" + template + ")" } ,
-                                             function( templateString ) { return "fireforg.orgProtocolRemember(\"" + templateString + "\",\"" + linkToStoreO + "\",\"" + titleToStoreO + "\")"; } );
+                                             function( templateString ) { return "fireforg_protocol.orgProtocolRemember(\"" + templateString + "\",\"" + linkToStoreO + "\",\"" + titleToStoreO + "\")"; } );
         
         
     },
@@ -448,13 +448,6 @@ var fireforg = {
                 fireforg.populateMenuWithAnnotations( popupMenu, fireforg.removeDuplicateAnnotations( fireforg.jq( fireforg.currentLinkRegistryEntry ).append( fireforg.jq( fireforg.currentHeadingsMatchingDOI ).children() ).eq(0) ) );
             popupMenu.openPopup( document.getElementById("fireforg_spi"),"before_end",0,0,false,null);
         }
-    },
-    orgProtocolShowAnnotation: function (file, heading, encoded) {
-        
-        if( !encoded ) {
-	    file = encodeURIComponent( file );
-            heading = encodeURIComponent( heading ); }
-	fireforg.orgProtocolSendURL("fireforg-show-annotation://" + file + "/" + heading);
     },
     updateStatusBarIcon: function () {
         var linkMatches = 0;
@@ -497,64 +490,10 @@ var fireforg = {
             var title = tab.contentWindow.document.title;
             var url = tab.contentWindow.location.href;
  //            alert("Tab with title: " + title + " and URL:\n" + url );           
-            fireforg.orgProtocolRemember( 
+            fireforg_protocol.orgProtocolRemember( 
             template,
             url,
             title);
-        }
-    },
-    orgProtocolStoreLink: function ( link, title) {
-        if( !link || link === "" )
-            link = window.content.document.URL;
-        if( !title || title === "" )
-            title = document.title;
-	fireforg.orgProtocolSendURL("store-link://" + encodeURIComponent(link) + "/" + encodeURIComponent(title));
-    },
-    orgProtocolRemember: function ( rememberTemplate, urlO, titleO ) {
-        if( !urlO || urlO === "" ) urlO = window.content.document.URL;
-        if( !titleO || titleO === "" ) titleO = document.title;
-        if( rememberTemplate && rememberTemplate != "" )
-            rememberTemplate = rememberTemplate + "/";
-        else
-            rememberTemplate = "";
-        fireforg.orgProtocolSendURL("remember://" + rememberTemplate + encodeURIComponent(urlO) + "/" + encodeURIComponent(titleO) + "/" + encodeURIComponent(window.getSelection()));
-    },
-    orgProtocolSendURL: function (url) {
-        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.macWorkaround") ) { // Workaround
-            var tmpFileName = fireforg.getPreferenceManager().getCharPref("extensions.fireforg.macWorkaroundFile");
-            var file = Components.classes["@mozilla.org/file/local;1"]
-            .createInstance(Components.interfaces.nsILocalFile);
-            file.initWithPath( tmpFileName );
-            if(file.exists() == false) {
-                file.create( Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 420);
-            }
-
-            var stream = Components.classes["@mozilla.org/network/file-output-stream;1"]
-            .createInstance(Components.interfaces.nsIFileOutputStream);
-
-            stream.init(file, 0x02 | 0x08 | 0x10, 0666, 0);
-            var finalString = "org-protocol://" + url + "\n";
-            stream.write( finalString, finalString.length);
-            stream.close();
-
-        } else {
-            switch( fireforg.getPreferenceManager().getCharPref("extensions.fireforg.orgProtocolSendMethod") ) {
-
-            case "EMACSCLIENT": var req = new XMLHttpRequest();
-            try {
-                req.open('POST', "org-protocol://" + url,true);
-                req.send(null);
-            } catch (ex) { }
-            break;
-            
-            case "HTTPD":
-            var req = new XMLHttpRequest();
-            try {
-                req.open('GET', "http://localhost:" + fireforg.getPreferenceManager().getIntPref("extensions.fireforg.http.port") + "/org-protocol://" + url,true);
-                req.send(null);
-            } catch (ex) { }
-            break;
-            }
         }
     },
     contextMenuItemShowing: function (e) {
@@ -613,68 +552,13 @@ var fireforg = {
                       var tmpItem = document.createElement("menuitem");
                       tmpItem.setAttribute("class","fireforg-popupmenu");
                       tmpItem.setAttribute("label", headingText + "  " + tags );
-                      tmpItem.setAttribute("onclick","fireforg.orgProtocolShowAnnotation(\"" + encodeURIComponent(file) + "\",\"" + encodeURIComponent(headingText) + "\",true)");
+                      tmpItem.setAttribute("onclick","fireforg_protocol.orgProtocolShowAnnotation(\"" + encodeURIComponent(file) + "\",\"" + encodeURIComponent(headingText) + "\",true)");
                       menu.appendChild( tmpItem );
                   });
 
         }
     },
 
-    injectZoteroAccordingToPref: function () {
-        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.injectZotero") ) {
-            if( Zotero.Translate ) {
-                if( !Zotero.Translate.prototype.fireforg_runHandler ) {
-                    Zotero.Translate.prototype.fireforg_runHandler = Zotero.Translate.prototype.runHandler;
-                    Zotero.Translate.prototype.runHandler = function(type, argument) {
-                        if( type == "itemDone") {
-                            fireforg.zoteroItemDoneHandler( argument );
-                        }
-                        return this.fireforg_runHandler(type, argument);
-                    }
-                    //  alert("Zotero translator handler injected.");
-                }
-            }
-        } else { // remove injection
-            if( Zotero.Translate() ) {
-                if( Zotero.Translate.prototype.fireforg_runHandler ) {
-                    Zotero.Translate.prototype.runHandler = Zoter.Translate.prototype.fireforg_runHandler;
-                    //alert("Zotero injection removed");
-                }
-            }
-        }
-    },
-    // additional "itemDone" handler for Zoteros translator
-    // item : Zotero.item that has been processed
-    zoteroItemDoneHandler: function (item) {
-
-        /*alert("itemDoneHandler called with: \n" +
-          "type: " + Zotero.ItemTypes.getName(item.getType()) + "\n" + 
-          "title: " + item.getDisplayTitle(true) + "\n");*/
-        window.setTimeout( function () {
-                //alert( "item.attachments : " + item.getAttachments());
-
-                var translatorObj = new Zotero.Translate("export"); // create Translator for export
-                translatorObj.setItems( [ item ]);
-                translatorObj.setTranslator( "9cb70025-a888-4a29-a210-93ec52da40d4" ); // set Translator to use the BibTex translator
-                translatorObj.setHandler("done", fireforg._zoteroTranslationDone);
-                // deinject runHandler to avoid recursion
-                translatorObj.runHandler = translatorObj.fireforg_runHandler;
-                translatorObj.translate(); }
-            , 2000);
-
-    
-    },
-    _zoteroTranslationDone: function (obj, worked) {
-        if( !worked ) {
-            //            alert("Fireforg: Zotero BibTex export failed!");
-        } else {
-            var bibtex =  obj.output.replace(/\r\n/g, "\n");
-            //alert("BibTex: " + bibtex );
-            
-            // Send to org
-            fireforg.orgProtocolSendURL("fireforg-bibtex-entry://" + encodeURIComponent( bibtex ) ); 
-        }
-    },
 
     /* READ PREFERENCES */
     prefRememberTemplates: function () {
@@ -820,6 +704,24 @@ var fireforg = {
         //alert("linkToAbsoluteUrl: link = " + link + ", rootDir = " + rootDir + "\n=> " + newLink);
         return rootDir + newPath;
     },
+    // removes duplicate heading entries that are children to the given root node
+    // simple unoptimized solution
+    removeDuplicateAnnotations: function  ( rootNode ) {   
+        var childrenArray = fireforg.jQuery.makeArray( rootNode.children() );
+        
+        var allChildren = rootNode.children();
+        var uniqueChildren = allChildren;
+        //            var test = fireforg.jQuery.unique( fireforg.jQuery.makeArray( allChildren ) );
+        rootNode = rootNode.empty();
+        allChildren.each( function () {
+            var currentEntry = this;
+            uniqueChildren = uniqueChildren.filter( function () { 
+                return !( (fireforg.jq(this).attr("file") == fireforg.jq(currentEntry).attr("file")
+                           && (fireforg.jq(this).attr("point") == fireforg.jq(currentEntry).attr("point"))  )) }).add( currentEntry );
+
+        });
+        return rootNode.empty().append( uniqueChildren );
+    }
 }
 
 window.addEventListener("load", function(e) { fireforg.onLoad(e); }, false);
