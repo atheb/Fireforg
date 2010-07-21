@@ -114,7 +114,7 @@ Example: To reference the heading Bookmarks in the file
          (file (nth 0 arguments))
          (heading (nth 1 arguments))
          (frameList (or (visible-frame-list) (frame-list))))
-;;    (message "In file: %s search for: %s" file (regexp-quote heading))
+    ;;    (message "In file: %s search for: %s" file (regexp-quote heading))
     (find-file file)
     (goto-char (point-min))
     (re-search-forward (regexp-quote heading))
@@ -131,14 +131,15 @@ Example: To reference the heading Bookmarks in the file
          (registry-entries (org-registry-assoc-all url)))
     (message "org-fireforg-get-annotations-for-url: %s" url)
     ;; export registry entries to xml
-    (concat 
+    (concat
+     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
      "<org-fireforg-get-annotations-for-url>\n"
      (mapconcat 
       (lambda (entry) 
         (format "<heading file=\"%s\" text=\"%s\" tags=\"%s\" point=\"%d\"/>\n"
-                (nth 3 entry)
-                (nth 4 (nth 4 entry))
-                (or (nth 5 (nth 4 entry)) "")
+                (org-protocol-httpd-escape-xml-attribute-chars (nth 3 entry))
+                (org-protocol-httpd-escape-xml-attribute-chars (nth 4 (nth 4 entry)))
+                (org-protocol-httpd-escape-xml-attribute-chars (or (nth 5 (nth 4 entry)) ""))
                 (nth 5 entry)))
       (org-registry-assoc-all url) "")
      "</org-fireforg-get-annotations-for-url>")))
@@ -175,7 +176,9 @@ Example: To reference the heading Bookmarks in the file
                  (re-search-forward org-bracket-link-regexp (save-excursion (org-end-of-subtree)) t))
                 (cond (link-position
                        (setq link (org-match-string-no-properties 1))
-                       (format "<heading title=\"%s\" url=\"%s\"/>\n" (nth 4 heading-components) link))
+                       (format "<heading title=\"%s\" url=\"%s\"/>\n" 
+                               (nth 4 heading-components) 
+                               link))
                       (t nil))
                 ))) ""))
     (widen)
