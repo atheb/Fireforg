@@ -5,6 +5,9 @@
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
   <script type="text/javascript" src="jquery-1.3.2.min.js" /> 
   <script src="overlay.js"/>
+  <script src="protocol.js"/>
+  <script src="doi.js"/>
+  <script src="zotero.js"/>
 
   <stringbundleset id="stringbundleset">
     <stringbundle id="fireforg-strings" src="chrome://fireforg/locale/fireforg.properties"/>
