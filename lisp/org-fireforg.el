@@ -34,8 +34,9 @@
 ;;
 ;;    fireforg-bibtex-entry://<BibTeX entry (encoded)>
 ;;    ---
-;;      Sends a BibTeX entry that is formatted according to `org-fireforg-received-bibtex-format'
-;;      and put into the kill ring
+;;      Sends a BibTeX entry that is formatted according to
+;;      `org-fireforg-received-bibtex-format'
+;;      and puts into the kill ring
 
 
 (require 'org)
@@ -173,7 +174,8 @@ Example: To reference the heading Bookmarks in the file
                     link)
                 (setq 
                  link-position 
-                 (re-search-forward org-bracket-link-regexp (save-excursion (org-end-of-subtree)) t))
+                 (re-search-forward org-bracket-link-regexp 
+                                    (save-excursion (org-end-of-subtree)) t))
                 (cond (link-position
                        (setq link (org-match-string-no-properties 1))
                        (format "<heading title=\"%s\" url=\"%s\"/>\n" 
@@ -214,20 +216,26 @@ Example: To reference the heading Bookmarks in the file
         (let ((doi (org-entry-get (point) "BIB_doi")))
           ;;(message (concat "current file:" currentFile))
           (when doi 
-            (setq returnList (cons (list 
-                                    ;; link
-                                    ;; Due to a bug in Zotero it might happen that
-                                    ;; the doi identifier is enclosed in two sets
-                                    ;; of "{}" brackets.1
-                                    ;; Therefore the function org-fireforg-bibtex-trim-string is apply two times.
-                                    (org-fireforg-doi-to-url (org-fireforg-bibtex-trim-string (org-fireforg-bibtex-trim-string doi)))
-                                    ;; description
-                                    "DOI Link"
-                                    ;; point
-                                    (point)
-                                    doi-file
-                                    (org-heading-components)
-                                    (point)) returnList)))))))
+            (setq returnList 
+                  (cons 
+                   (list 
+                    ;; link
+                    ;; Due to a bug in Zotero it might happen that
+                    ;; the doi identifier is enclosed in two sets
+                    ;; of "{}" brackets.1
+                    ;; Therefore the function
+                    ;; org-fireforg-bibtex-trim-string is apply two
+                    ;; times.
+                    (org-fireforg-doi-to-url 
+                     (org-fireforg-bibtex-trim-string 
+                      (org-fireforg-bibtex-trim-string doi)))
+                    ;; description
+                    "DOI Link"
+                    ;; point
+                    (point)
+                    doi-file
+                    (org-heading-components)
+                    (point)) returnList)))))))
   returnList)
 
 (defun org-fireforg-receive-bibtex-entry (data)
@@ -235,15 +243,17 @@ Example: To reference the heading Bookmarks in the file
   (let* ((arguments (org-protocol-split-data data t))
          (bibtex (nth 0 arguments))
          (bibtexParsed (org-fireforg-parse-bibtex-entry-wrapper bibtex)))
-    (kill-new (cond ((eq org-fireforg-received-bibtex-format 'heading)
-                     (concat (org-fireforg-generate-heading bibtexParsed) "\n" (org-fireforg-bibtex-entry-to-properties bibtexParsed)))
-                    ((eq org-fireforg-received-bibtex-format 'headingWithPropsAndBibTeXContent)
-                     (concat (org-fireforg-generate-heading bibtexParsed) "\n" (org-fireforg-bibtex-entry-to-properties bibtexParsed) bibtex "\n"))
-                    ((eq org-fireforg-received-bibtex-format 'headingWithBibTeXContent)
-                     (concat (org-fireforg-generate-heading bibtexParsed) "\n" bibtex "\n"))
-                    ((not org-fireforg-received-bibtex-format) bibtex)))
-    (message "Saved BibTeX entry to kill ring.") 
-    )
+    (kill-new 
+     (cond ((eq org-fireforg-received-bibtex-format 'heading)
+            (concat (org-fireforg-generate-heading bibtexParsed) "\n" 
+                    (org-fireforg-bibtex-entry-to-properties bibtexParsed)))
+           ((eq org-fireforg-received-bibtex-format 'headingWithPropsAndBibTeXContent)
+            (concat (org-fireforg-generate-heading bibtexParsed) "\n" 
+                    (org-fireforg-bibtex-entry-to-properties bibtexParsed) bibtex "\n"))
+           ((eq org-fireforg-received-bibtex-format 'headingWithBibTeXContent)
+            (concat (org-fireforg-generate-heading bibtexParsed) "\n" bibtex "\n"))
+           ((not org-fireforg-received-bibtex-format) bibtex)))
+    (message "Saved BibTeX entry to kill ring."))
   nil)
 
 (defun org-fireforg-parse-bibtex-entry-wrapper (bibtexEntryString)
@@ -256,10 +266,18 @@ Example: To reference the heading Bookmarks in the file
     (bibtex-parse-entry)))
 
 (defun org-fireforg-bibtex-trim-string (string)
-  (replace-regexp-in-string "[\"}] *$" "" (replace-regexp-in-string "^ *[{\"]" "" string)))
+  (replace-regexp-in-string 
+   "[\"}] *$" "" 
+   (replace-regexp-in-string 
+    "^ *[{\"]" "" 
+    string)))
 
 (defun org-fireforg-headings-to-bibtex (&optional match)
-  (reduce 'concat (org-map-entries (lambda () (concat (org-fireforg-heading-to-bibtex-entry) "\n\n")) match )))
+  (reduce 'concat 
+          (org-map-entries 
+           (lambda () 
+             (concat (org-fireforg-heading-to-bibtex-entry) "\n\n"))
+           match)))
 
 (defun org-fireforg-heading-to-bibtex-entry ()
   (let* ((properties (org-entry-properties))
@@ -273,11 +291,11 @@ Example: To reference the heading Bookmarks in the file
 
 (defun org-fireforg-bibtex-entry-to-properties (bibtexEntry)
   (concat ":PROPERTIES:\n"
-   (reduce 'concat (mapcar (lambda (entry) 
-     (concat (cond ((string= (car entry) "=key=") "  :CUSTOM_ID")
-                   ((string= (car entry) "=type=") "  :BIB_entryType")
-                   (t (concat "  :BIB_" (car entry) ))) ": " (cdr entry) "\n")) (nreverse bibtexEntry)) :initial-value "")
-   ":END:\n"))
+          (reduce 'concat (mapcar (lambda (entry) 
+                                    (concat (cond ((string= (car entry) "=key=") "  :CUSTOM_ID")
+                                                  ((string= (car entry) "=type=") "  :BIB_entryType")
+                                                  (t (concat "  :BIB_" (car entry) ))) ": " (cdr entry) "\n")) (nreverse bibtexEntry)) :initial-value "")
+          ":END:\n"))
 
 (defun org-fireforg-generate-heading (bibtexEntry)
   (let* ((url (cdr (assoc "url" bibtexEntry)))
@@ -322,20 +340,31 @@ Example: To reference the heading Bookmarks in the file
     (cond ((not file) (error "No file supplied"))
           ((let ((bibtex (org-fireforg-headings-to-bibtex)))
              (with-temp-buffer 
-             (insert bibtex)
-             (write-file file t)))))))
+               (insert bibtex)
+               (write-file file t)))))))
 
 (defun org-fireforg-export-bibtex-to-new-buffer ()
   (interactive)
   (let ((bibtex (org-fireforg-headings-to-bibtex))
         ;; find nearest bibliography entry before point
         (prevId (save-excursion 
-                  (while (and (not (org-before-first-heading-p)) (if (org-at-heading-p) (or (null (org-entry-get (point) "CUSTOM_ID")) (string= (org-entry-get (point) "CUSTOM_ID") "")) 1) (not (bobp)) ) (progn (backward-char) (org-back-to-heading t) ) )
-                  (if (or (org-before-first-heading-p) (bobp)) nil (org-entry-get (point) "CUSTOM_ID")))))
+                  (while (and (not (org-before-first-heading-p))
+                              (if (org-at-heading-p) 
+                                  (or (null (org-entry-get (point) "CUSTOM_ID"))
+                                      (string= (org-entry-get (point) "CUSTOM_ID") ""))
+                                1) 
+                              (not (bobp)))
+                    (progn (backward-char) (org-back-to-heading t)))
+                  (if (or (org-before-first-heading-p)
+                          (bobp))
+                      nil 
+                    (org-entry-get (point) "CUSTOM_ID")))))
     (switch-to-buffer (generate-new-buffer "*BibTeX export*"))
     (insert bibtex)
     (goto-char (point-min))
-    (if prevId (progn (re-search-forward (regexp-quote prevId)) (beginning-of-line)))
+    (when prevId 
+      (progn (re-search-forward (regexp-quote prevId))
+             (beginning-of-line)))
     (bibtex-mode)))
 
 (defun org-fireforg-doi-to-url (string)
