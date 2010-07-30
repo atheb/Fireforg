@@ -43,6 +43,8 @@
 
 (require 'org-protocol)
 
+(require 'org-protocol-httpd)
+
 (require 'bibtex)
 
 (add-to-list 'org-protocol-protocol-alist
@@ -59,12 +61,12 @@
        (add-to-list 'org-protocol-httpd-protocol-alist
                     '("get-org-subtree" 
                       :protocol "get-org-subtree" 
-                      :mime "xml"
+                      :mime "text/xml"
                       :function org-fireforg-get-org-subtree))
        (add-to-list 'org-protocol-httpd-protocol-alist
                     '("get-annotations-for-url" 
                       :protocol "get-annotations-for-url" 
-                      :mime "xml"
+                      :mime "text/xml"
                       :function org-fireforg-get-annotations-for-url)))
       (t
        (message "org-protocol-httpd no loaded!")))
