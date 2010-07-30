@@ -1,7 +1,7 @@
 var fireforg_protocol = {
     orgProtocolSendURL: function (url) {
-        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.macWorkaround") ) { // Workaround
-            var tmpFileName = fireforg.getPreferenceManager().getCharPref("extensions.fireforg.macWorkaroundFile");
+        if( fireforg_pref.macWorkaround() ) { // Workaround
+            var tmpFileName = fireforg_pref.macWorkaroundFile();
             var file = Components.classes["@mozilla.org/file/local;1"]
             .createInstance(Components.interfaces.nsILocalFile);
             file.initWithPath( tmpFileName );
@@ -18,7 +18,7 @@ var fireforg_protocol = {
             stream.close();
 
         } else {
-            switch( fireforg.getPreferenceManager().getCharPref("extensions.fireforg.orgProtocolSendMethod") ) {
+            switch( fireforg_pref.orgProtocolSendMethod() ) {
 
             case "EMACSCLIENT": var req = new XMLHttpRequest();
             try {
@@ -30,7 +30,7 @@ var fireforg_protocol = {
             case "HTTPD":
             var req = new XMLHttpRequest();
             try {
-                req.open('GET', "http://localhost:" + fireforg.getPreferenceManager().getIntPref("extensions.fireforg.http.port") + "/org-protocol://" + url,true);
+                req.open('GET', "http://localhost:" + fireforg_pref.httpPort() + "/org-protocol://" + url,true);
                 req.send(null);
             } catch (ex) { }
             break;

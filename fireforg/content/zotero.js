@@ -1,6 +1,6 @@
 var fireforg_zotero = {
     injectZoteroAccordingToPref: function () {
-        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.injectZotero") ) {
+        if( fireforg_pref.injectZotero() ) {
             if( Zotero.Translate ) {
                 if( !Zotero.Translate.prototype.fireforg_runHandler ) {
                     Zotero.Translate.prototype.fireforg_runHandler = Zotero.Translate.prototype.runHandler;

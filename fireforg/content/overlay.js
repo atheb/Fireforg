@@ -32,9 +32,6 @@ var fireforg = {
     EMACSCLIENT: "EMACSCLIENT",
     HTTPD: "HTTPD",
     MACWORKAROUND: "MACWORKAROUND",
-    getPreferenceManager: function () {
-        return Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
-    },
 
     // fetch links
     lookupAndModifyLinks: function () {
@@ -42,8 +39,8 @@ var fireforg = {
         // remove existing annotations;
         fireforg.jq(".orgNote").remove();
 
-        var annotationLinkStyle = fireforg.getPreferenceManager().getCharPref("extensions.fireforg.annotationLinkStyle");
-        var annotationLinkTooltip = fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.annotationLinkTooltip");
+        var annotationLinkStyle = fireforg_pref.annotationLinkStyle();
+        var annotationLinkTooltip = fireforg_pref.annotationLinkTooltip();
 
         var linksJQ = fireforg.jq("a");
 
@@ -92,7 +89,7 @@ var fireforg = {
 		}
 
                 // If no mapping entry exists and prefetchLinks is on, fetch document, extract doi and add to link map
-                if( urlMapped == null && fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") ) {
+            if( urlMapped == null && fireforg_pref.prefetchLinks() ) {
 
                     if( fireforg.prefetchUrlAllowed( url ) ) {
                         //alert("Prefetching link " + url);
@@ -157,26 +154,26 @@ var fireforg = {
 	    });
     },
     onLoadSite: function () {
-        switch( fireforg.getPreferenceManager().getCharPref("extensions.fireforg.orgProtocolSendMethod") ) {
+        switch( fireforg_pref.orgProtocolSendMethod() ) {
         case fireforg.EMACSCLIENT:
-        if( fireforg.loadRegistryFromFile() ) {
-            if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.lookupLinksOnLoad") ) {
+            if( fireforg.loadRegistryFromFile() ) {
+                if( fireforg_pref.lookupLinksOnLoad() ) {
+                    fireforg.lookupAndModifyLinks();
+                }
+            } else {
+                fireforg.setStatusBarIconError();
+            };
+            break;
+        case fireforg.HTTPD: 
+            if( fireforg_pref.lookupLinksOnLoad() ) {
                 fireforg.lookupAndModifyLinks();
             }
-        } else {
-            fireforg.setStatusBarIconError();
-        };
-        break;
-        case fireforg.HTTPD: 
-        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.lookupLinksOnLoad") ) {
-            fireforg.lookupAndModifyLinks();
-        }
-        break;
+            break;
         }
     },
     onUrlSwitch: function() {
 	        
-        if(  !(fireforg.getPreferenceManager().getCharPref("extensions.fireforg.orgProtocolSendMethod") == fireforg.EMACSCLIENT)
+        if(  !(fireforg_pref.orgProtocolSendMethod() == fireforg.EMACSCLIENT)
            || fireforg.loadRegistryFromFile() ) {
 
 	    // set waiting state
@@ -190,13 +187,13 @@ var fireforg = {
             fireforg.currentLinkRegistryEntry = null;
             fireforg.currentHeadingsMatchingDOI = null;
 
-            if( !(fireforg.getPreferenceManager().getCharPref("extensions.fireforg.orgProtocolSendMethod") == fireforg.EMACSCLIENT)
+            if( !(fireforg_pref.orgProtocolSendMethod() == fireforg.EMACSCLIENT)
                 || fireforg.registryDOM ) {
 		
 		// get all heading for url
 		fireforg.currentLinkRegistryEntry = fireforg.getRegistryEntryFromFileForUrl( url );
                 // add all doi matches if enabled
-                if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.matchDOI") ) {
+                if( fireforg_pref.matchDOI() ) {
                     var doi = fireforg_doi.getDOIFromHtml( fireforg.jq("html").html() );
                     if( doi ) {
                         fireforg.currentHeadingsMatchingDOI = fireforg.getRegistryEntryFromFileForUrl( fireforg_doi.doiToURL(doi) );
@@ -251,7 +248,7 @@ var fireforg = {
     loadRegistryFromFile: function () {
 	var file = Components.classes["@mozilla.org/file/local;1"]
 	.createInstance(Components.interfaces.nsILocalFile);
-	file.initWithPath( fireforg.getPreferenceManager().getCharPref("extensions.fireforg.registryFile") );
+	file.initWithPath( fireforg_pref.registryFile() );
 	if ( !file.exists() ) {
 	    return false;
 	} else {
@@ -322,8 +319,13 @@ var fireforg = {
 
 // If Zotero is to be injected into, then do so after a small delay so
 // as to ensure, that the Zotero plugin is actually loaded.
-        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.injectZotero") )        
+        if( fireforg_pref.injectZotero() )        
             window.setTimeout( fireforg_zotero.injectZoteroAccordingToPref, 5000);
+
+// Define key handler
+        // window.onkeypress = function (evt) {
+        //     alert("Key pressed: " + evt.charCode);
+        // };
         
 
     },
@@ -350,7 +352,7 @@ var fireforg = {
         var linkPrefetchingLabel = "";
         var linkPrefetchNewState = "false";
 
-        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") ) {
+        if( fireforg_pref.prefetchLinks() ) {
             linkPrefetchingLabel = "Disable link prefetching";
             linkPrefetchNewState = "false";
         } else {
@@ -359,7 +361,7 @@ var fireforg = {
         }
         tmpItem.setAttribute("class","fireforg-popupmenu");
         tmpItem.setAttribute("label", linkPrefetchingLabel );
-        tmpItem.setAttribute("onclick","fireforg.getPreferenceManager().setBoolPref(\"extensions.fireforg.prefetchLinks\", " + linkPrefetchNewState + ");fireforg.updateStatusBarIcon();");
+        tmpItem.setAttribute("onclick","fireforg_pref.prefetchLinksSet(" + linkPrefetchNewState + ");fireforg.updateStatusBarIcon();");
         menu.appendChild( tmpItem );
  
         tmpItem = document.createElement("menuseparator");
@@ -369,7 +371,6 @@ var fireforg = {
         var tmpMenu = document.createElement("menu");
         tmpMenu.setAttribute("class","fireforg-menu");
         tmpMenu.setAttribute("label", "All tabs" );
-        //        tmpMenu.setAttribute("onclick","fireforg.getPreferenceManager().setBoolPref(\"extensions.fireforg.prefetchLinks\", " + linkPrefetchNewState + ");fireforg.updateStatusBarIcon();");
         menu.appendChild( tmpMenu );        
         var tmpMenuPopup = document.createElement("menupopup");
         tmpMenu.appendChild( tmpMenuPopup );
@@ -462,7 +463,7 @@ var fireforg = {
     },
     setStatusBarIconNormal: function (matches, matchesDOI) {
         var staticString = "";
-        if( fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.prefetchLinks") )
+        if( fireforg_pref.prefetchLinks() )
             staticString = "PREFETCH";//"<FONT color=\"red\">PREFETCH</FONT>";	
 
         if( matches == 0 && matchesDOI == 0 ) {
@@ -562,12 +563,12 @@ var fireforg = {
 
     /* READ PREFERENCES */
     prefRememberTemplates: function () {
-        return fireforg.getPreferenceManager().getCharPref("extensions.fireforg.rememberTemplates").split(',');
+        return fireforg_pref.rememberTemplates().split(',');
     },
     /* ACCESS REGISTRY */
     /* Retrieves all entries for url from the registry file.*/
     getRegistryEntryFromFileForUrl: function (url) {
-        switch( fireforg.getPreferenceManager().getCharPref("extensions.fireforg.orgProtocolSendMethod") ) {
+        switch( fireforg_pref.orgProtocolSendMethod() ) {
         case fireforg.EMACSCLIENT:
         try {
 	    // the xpath query may be invalid for certain url's
@@ -617,7 +618,7 @@ var fireforg = {
         // Check whether there is a url mapped to this one
         if( urlMapped && urlMapped != "") {
             registryEntryMapped = fireforg.getRegistryEntryFromFileForUrl( urlMapped );
-        } else if( !urlMapped && fireforg.getPreferenceManager().getBoolPref("extensions.fireforg.matchDOI") ) {
+        } else if( !urlMapped && fireforg_pref.matchDOI() ) {
             var doi = null;
             // See how the site's content can be accessed.
             // If it is the currently viewed url, simply use the content of the <html> tag to search through
@@ -673,8 +674,8 @@ var fireforg = {
     prefetchUrlAllowed: function (url) {
         if( url ) {
             ;;            return url.match(/^http:\/\//i) && !url.match(/.*\.pdf$/i) && !url.match(/.*\.gif$/i) && !url.match(/.*\.png$/i) && !url.match(/.*\.swf$/i);
-            var whitelistRegexp = fireforg.getPreferenceManager().getCharPref("extensions.fireforg.prefetchLinks.whitelistRegexp");
-            var blacklistRegexp = fireforg.getPreferenceManager().getCharPref("extensions.fireforg.prefetchLinks.blacklistRegexp");
+            var whitelistRegexp = fireforg_pref.prefetchLinks_whitelistRegexp();
+            var blacklistRegexp = fireforg_pref.prefetchLinks.blacklistRegexp();
             return url.match( RegExp(whitelistRegexp) ) && !url.match( RegExp( blacklistRegexp ) );
         }        
         else
