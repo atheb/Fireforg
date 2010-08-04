@@ -129,8 +129,7 @@ Example: To reference the heading Bookmarks in the file
 
 (defun org-fireforg-get-annotations-for-url (data)
   (let* ((arguments (org-protocol-split-data data t))
-         (url (nth 0 arguments))
-         (registry-entries (org-registry-assoc-all url)))
+         (url (nth 0 arguments)))
     (message "org-fireforg-get-annotations-for-url: %s" url)
     ;; export registry entries to xml
     (concat
