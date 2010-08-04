@@ -47,4 +47,5 @@ var fireforg_pref = {
     },
     httpPort: function () {
         return fireforg_pref.getPreferenceManager().getIntPref("extensions.fireforg.http.port")
+    }
 }
