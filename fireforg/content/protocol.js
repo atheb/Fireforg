@@ -53,10 +53,10 @@ var fireforg_protocol = {
             title = document.title;
 	fireforg_protocol.orgProtocolSendURL("store-link://" + encodeURIComponent(link) + "/" + encodeURIComponent(title));
     },
-    orgProtocolShowAnnotation: function (file, heading, encoded) {   
+    orgProtocolShowAnnotation: function (file, heading, encoded, headingPoint) {   
         if( !encoded ) {
 	    file = encodeURIComponent( file );
             heading = encodeURIComponent( heading ); }
-	fireforg_protocol.orgProtocolSendURL("fireforg-show-annotation://" + file + "/" + heading);
+	fireforg_protocol.orgProtocolSendURL("fireforg-show-annotation://" + file + "/" + heading + "/" + headingPoint);
     }
 }

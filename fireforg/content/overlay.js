@@ -549,11 +549,12 @@ var fireforg = {
                       var file = headingJQ.attr("file");
                       var headingText = headingJQ.attr("text");
                       var tags = headingJQ.attr("tags");
+                      var headingPoint = headingJQ.attr("point");
 
                       var tmpItem = document.createElement("menuitem");
                       tmpItem.setAttribute("class","fireforg-popupmenu");
                       tmpItem.setAttribute("label", headingText + "  " + tags );
-                      tmpItem.setAttribute("onclick","fireforg_protocol.orgProtocolShowAnnotation(\"" + encodeURIComponent(file) + "\",\"" + encodeURIComponent(headingText) + "\",true)");
+                      tmpItem.setAttribute("onclick","fireforg_protocol.orgProtocolShowAnnotation(\"" + encodeURIComponent(file) + "\",\"" + encodeURIComponent(headingText) + "\",true,\"" + headingPoint + "\")");
                       menu.appendChild( tmpItem );
                   });
 
