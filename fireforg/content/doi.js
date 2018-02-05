@@ -13,6 +13,6 @@ var fireforg_doi = {
     },
 
     doiToURL: function ( string ) {
-        return "http://dx.doi.org/" + string.replace(/%/g,"%25").replace(/"/g,"%22").replace(/#/g,"%23").replace(/ /g,"%20"); // "
+        return "https://doi.org/" + string.replace(/%/g,"%25").replace(/"/g,"%22").replace(/#/g,"%23").replace(/ /g,"%20"); // "
     }
 }
